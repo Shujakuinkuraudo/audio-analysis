@@ -31,6 +31,8 @@ class emodb_dataset(Dataset, dataset):
             if wave_form.shape[1] > self.sr * self.time:
                 wave_form = wave_form[:,:self.sr * self.time]
 
+            wave_form = wave_form.numpy()
+
             # wave_form = wave_form.mean(dim=0)
             # wave_form /= wave_form.abs().topk(int(0.02 * self.sr * self.time)).values.mean()
             

@@ -32,6 +32,7 @@ class savee_dataset(Dataset, dataset):
                 wave_form = torch.cat((wave_form, torch.zeros(1, self.sr*self.time-wave_form.shape[1])), dim=1)
             if wave_form.shape[1] > self.sr*self.time:
                 wave_form = wave_form[:,:self.sr*self.time]
+            wave_form = wave_form.numpy()
 
             # wave_form = wave_form.mean(dim=0)
             # wave_form /= wave_form.abs().topk(int(0.02 * self.sr * self.time)).values.mean()
