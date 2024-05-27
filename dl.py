@@ -29,7 +29,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 for clf in clfs:
     run = wandb.init(project='audio analysis', name=f"ml - {repr(clf)}", reinit=True)
-    run.log_code("./")
 
     try:
         tp = Train_process()
