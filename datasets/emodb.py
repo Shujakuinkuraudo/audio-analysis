@@ -32,6 +32,7 @@ class emodb_dataset(Dataset, dataset):
                 wave_form = wave_form[:,:self.sr * self.time]
 
             wave_form = wave_form.mean(dim=0)
+            wave_form /= wave_form.abs().max()
             
                 
             target = self.emo_dict[self.data_path[index].split("/")[-1][5]]
