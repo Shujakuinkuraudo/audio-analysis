@@ -1,20 +1,71 @@
 import torch
 from typing import Tuple
+import torchaudio
+import numpy as np
+import librosa
 import tqdm
 class dataset:
-    def get_feature(self, wave_form:torch.Tensor, sr) -> Tuple[torch.Tensor]:
-        frames = wave_form.unfold(0, 400, 200)
-        zcr = frames.sign().diff(dim=1).ne(0).sum(dim=1).float() # 199
-        energy = frames.pow(2).sum(dim=1) # 199
-        max_val = frames.abs().max(dim=1).values # 199
-        fft = torch.fft.rfft(frames, 20).real # 199,11
+    def __init__(self):
+        self.time = 2.5
+
         
-        mfcc_total = self.mfcc_transform(wave_form).unsqueeze(0) # 1, 13, 201
-        frames = wave_form.unfold(0, 1600, 800) 
-        hamming = torch.hamming_window(1600)
-        frames = frames * hamming
-        mfcc_partial = self.mfcc_transform(frames) # 59, 13, 9
-        return zcr, energy, mfcc_total, max_val, fft, mfcc_partial
+    def zcr(self,data,frame_length,hop_length):
+        zcr=librosa.feature.zero_crossing_rate(data,frame_length=frame_length,hop_length=hop_length)
+        return np.squeeze(zcr)
+    def rmse(self,data,frame_length=1024,hop_length=256):
+        rmse=librosa.feature.rms(data,frame_length=frame_length,hop_length=hop_length)
+        return np.squeeze(rmse)
+    def mfcc(self,data,sr,frame_length=1024,hop_length=256,flatten:bool=True):
+        mfcc=librosa.feature.mfcc(data,sr=sr)
+        return np.squeeze(mfcc.T)if not flatten else np.ravel(mfcc.T)
+    def extract_features(self,data,sr=22050,frame_length=1024,hop_length=256):
+        result=np.array([])
+        
+        result=np.hstack((result,
+                        self.zcr(data,frame_length,hop_length),
+                        self.rmse(data,frame_length,hop_length),
+                        self.mfcc(data,sr,frame_length,hop_length)
+                        ))
+        return result
+    
+    # NOISE
+    def noise(self,data):
+        noise_amp = 0.035*np.random.uniform()*np.amax(data)
+        data = data + noise_amp*np.random.normal(size=data.shape[0])
+        return data
+
+    # STRETCH
+    def stretch(self,data, rate=0.8):
+        return librosa.effects.time_stretch(data, rate)
+    # SHIFT
+    def shift(self,data):
+        shift_range = int(np.random.uniform(low=-5, high = 5)*1000)
+        return np.roll(data, shift_range)
+    # PITCH
+    def pitch(self,data, sampling_rate, pitch_factor=0.7):
+        return librosa.effects.pitch_shift(data, sampling_rate, pitch_factor) 
+    
+    
+    def get_feature(self, data:torch.Tensor, sr) -> torch.Tensor:
+        aud=self.extract_features(data)
+        audio=np.array(aud)
+        
+        noised_audio=self.noise(data)
+        aud2=self.extract_features(noised_audio)
+        audio=np.vstack((audio,aud2))
+        
+        pitched_audio=self.pitch(data,sr)
+        aud3=self.extract_features(pitched_audio)
+        audio=np.vstack((audio,aud3))
+        
+        pitched_audio1=self.pitch(data,sr)
+        pitched_noised_audio=self.noise(pitched_audio1)
+        aud4=self.extract_features(pitched_noised_audio)
+        audio=np.vstack((audio,aud4))
+        print(audio.shape)
+        
+        return torch.tensor(audio)
+
     def get_feature_data(self):
         datas = []
         targets = []

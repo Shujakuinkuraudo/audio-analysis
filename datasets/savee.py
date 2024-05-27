@@ -1,6 +1,7 @@
 import torch
 import tqdm
 from torch.utils.data import Dataset
+import librosa
 import torchaudio
 from typing import List,Literal, Tuple
 from .dataset import dataset
@@ -13,7 +14,6 @@ class savee_dataset(Dataset, dataset):
         self.emo_dict = {self.emotions[i]:i for i in range(len(self.emotions))}
         self.train = train
         self.people_id = ["DC", "JE", "JK", "KL"]
-        self.time = 4
 
         self.data_path = self.preprocess(glob.glob(root+"/*.wav"), [self.people_id[i] for i in leave_out_people_id])
         self.mfcc_transform = torchaudio.transforms.MFCC(n_mfcc=23, melkwargs={"n_fft": n_fft,"win_length":win_length, "hop_length": hop_length, "n_mels": 40}, sample_rate=sr)
@@ -32,11 +32,12 @@ class savee_dataset(Dataset, dataset):
             if wave_form.shape[1] > self.sr*self.time:
                 wave_form = wave_form[:,:self.sr*self.time]
 
-            wave_form = wave_form.mean(dim=0)
-            wave_form /= wave_form.abs().topk(int(0.02 * self.sr * self.time)).values.mean()
+            # wave_form = wave_form.mean(dim=0)
+            # wave_form /= wave_form.abs().topk(int(0.02 * self.sr * self.time)).values.mean()
             
             target = self.emo_dict[self.data_path[index].split("/")[-1].split("_")[1][:-6]]
-            data.append([*self.get_feature(wave_form, sr),wave_form.view(1,-1), target])
+
+            data.append([*self.get_feature(wave_form, sr), target])
         return data
         
     def __getitem__(self, index: int) -> Tuple[torch.Tensor]:
