@@ -30,7 +30,7 @@ class Train_process:
             test_dataloader = DataLoader(test_dataset, batch_size=80, shuffle=False, num_workers=20, prefetch_factor=5, persistent_workers=True)
             model = model_cls().to(device)
             optimizer = optimizer_cls(model.parameters(), lr=1e-3)
-            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.8)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.7)
 
             for epoch in (epoch_tq := tqdm.tqdm(range(epochs))):
                 model.train()
