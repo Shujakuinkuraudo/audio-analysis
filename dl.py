@@ -25,7 +25,7 @@ else:
 config = {
     "batch_size": 80,
     "lr_step_size" : 50,
-    "lr_step_gamma" : 0.7,
+    "lr_step_gamma" : 0.8,
     "optimizer" : "torch.optim.Adam",
     "win_length" : 400,
     "hop_length" : 200,
