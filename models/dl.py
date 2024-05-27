@@ -26,7 +26,8 @@ class Train_process:
     def test_fold(self, fold , model_cls:torch.nn.Module,optimizer_cls, labels, device, run=None, epochs=10, name="savee"):
         accs = []
         max_accs = []
-        for i, (train_dataset, test_dataset) in (tq := tqdm.tqdm(enumerate(fold), total= len(fold))):
+        for i, (train_dataset, test_dataset) in (tq := tqdm.tqdm(enumerate(fold[::-1]), total= len(fold))):
+            i = len(fold) - 1 - i
             train_dataloader = DataLoader(train_dataset, batch_size=run.config["batch_size"], shuffle=True, num_workers=20, prefetch_factor=5, persistent_workers=True)
             test_dataloader = DataLoader(test_dataset, batch_size=run.config["batch_size"], shuffle=False, num_workers=20, prefetch_factor=5, persistent_workers=True)
             model = model_cls().to(device)
