@@ -23,7 +23,7 @@ class savee_dataset(Dataset, dataset):
     
     def get_data(self):
         data = []
-        for index in range(len(self)//4):
+        for index in tqdm(range(len(self)//4), total=len(self)//4):
             if self.data_path[index] not in self.cache:
                 wave_form, sr = torchaudio.load(self.data_path[index], format="wav")
                 if sr != self.sr:

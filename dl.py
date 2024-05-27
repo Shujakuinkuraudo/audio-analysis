@@ -34,17 +34,18 @@ config = {
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+savee_fold, savee_labels = savee_fold_dl(fold = 4, n_fft=config["n_fft"], win_length=config["win_length"], hop_length=config["hop_length"])
+tp = Train_process()
+emodb_fold, emodb_labels = emodb_fold_dl(fold = 5, n_fft=config["n_fft"], win_length=config["win_length"], hop_length=config["hop_length"])
+
 for clf in clfs:
     run = wandb.init(project='audio analysis', name=f"speech-emotion-recognition-97-25-accuracy", reinit=True, config = config)
 
     optimizer = eval(run.config["optimizer"])
 
     try:
-        savee_fold, savee_labels = savee_fold_dl(fold = 4, n_fft=config["n_fft"], win_length=config["win_length"], hop_length=config["hop_length"])
-        tp = Train_process()
-        emodb_fold, emodb_labels = emodb_fold_dl(fold = 5, n_fft=config["n_fft"], win_length=config["win_length"], hop_length=config["hop_length"])
         acc,max_acc = tp.test_fold(emodb_fold, model_cls=clf, optimizer_cls=optimizer, labels=savee_labels, device=device, run=run, epochs=args.epochs, name="emodb")
-        
+
         run.log({"emodb - 5 - acc": acc, "emodb - 5 - maxacc": max_acc})
         acc,max_acc = tp.test_fold(savee_fold, model_cls=clf, optimizer_cls=optimizer, labels=savee_labels, device=device, run=run, epochs=args.epochs, name="savee")
         run.log({"savee - 4 - acc": acc, "savee - 4 - maxacc": max_acc})

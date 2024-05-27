@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 import torchaudio
 from typing import List,Literal, Tuple
 from .dataset import dataset
+from tqdm import tqdm
 import glob
 class emodb_dataset(Dataset, dataset):
     emotions = ["W", "L", "E", "A", "F", "T", "N"]
@@ -21,7 +22,7 @@ class emodb_dataset(Dataset, dataset):
     
     def get_data(self):
         data = []
-        for index in range(len(self)//4):
+        for index in tqdm(range(len(self)//4), total=len(self)//4):
             if self.data_path[index] not in self.cache:
                 wave_form, sr = torchaudio.load(self.data_path[index], format="wav")
                 if sr != self.sr:
