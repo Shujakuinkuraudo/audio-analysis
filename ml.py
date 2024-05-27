@@ -15,8 +15,13 @@ clfs = [DecisionTreeClassifier(), KNeighborsClassifier(), SVC(), RandomForestCla
 savee_fold, savee_labels = savee_fold_ml(fold = 4)
 emodb_fold, emodb_labels = emodb_fold_ml(fold = 5)
 
+config = {
+    "batch_size" : 80,
+    
+}
+
 for clf in clfs:
-    run = wandb.init(project='audio analysis', name=f"ml - {repr(clf)}", reinit=True)
+    run = wandb.init(project='audio analysis', name=f"ml - {repr(clf)}", reinit=True, config=config)
 
     try:
         tp = Train_process()

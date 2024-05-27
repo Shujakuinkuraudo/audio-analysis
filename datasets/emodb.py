@@ -12,6 +12,7 @@ class emodb_dataset(Dataset, dataset):
         self.emo_dict = {self.emotions[i]:i for i in range(len(self.emotions))}
         self.train = train
         self.people_id = ["03","08","09","10","11","12","13","14","15","16"]
+        self.time = 4
 
         self.data_path = self.preprocess(glob.glob(root+"/*.wav"), [self.people_id[i] for i in leave_out_people_id])
         self.mfcc_transform = torchaudio.transforms.MFCC(n_mfcc=13, melkwargs={"n_fft": 400,"win_length":200, "hop_length": 100, "n_mels": 23}, sample_rate=sr)
@@ -20,16 +21,15 @@ class emodb_dataset(Dataset, dataset):
     def get_data(self):
         data = []
         for index in range(len(self)):
-            time = 4
             wave_form, sr = torchaudio.load(self.data_path[index], format="wav")
             if sr != self.sr:
                 wave_form = torchaudio.transforms.Resample(sr, self.sr)(wave_form)
                 sr = self.sr
                 
-            if wave_form.shape[1] < self.sr * time:
-                wave_form = torch.cat((wave_form, torch.zeros(1, self.sr * time-wave_form.shape[1])), dim=1)
-            if wave_form.shape[1] > self.sr * time:
-                wave_form = wave_form[:,:self.sr * time]
+            if wave_form.shape[1] < self.sr * self.time:
+                wave_form = torch.cat((wave_form, torch.zeros(1, self.sr * self.time-wave_form.shape[1])), dim=1)
+            if wave_form.shape[1] > self.sr * self.time:
+                wave_form = wave_form[:,:self.sr * self.time]
 
             wave_form = wave_form.mean(dim=0)
             
