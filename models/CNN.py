@@ -70,7 +70,7 @@ class CNN(nn.Module):
         )
         self.classifier = nn.Sequential(
             nn.ReLU(),
-            nn.Linear(2048, num_classes),
+            nn.LazyLinear(num_classes),
         )
 
     def loss_function(self, y, target):
@@ -78,10 +78,10 @@ class CNN(nn.Module):
     
     def forward(self, mfcc_total, **kwargs):
         x = self.MFCC_TOTAL2VECTOR(mfcc_total)
-        y = self.WAVE_FORM2VECTOR(kwargs["wave_form"])
+        # y = self.WAVE_FORM2VECTOR(kwargs["wave_form"])
         # x_partial = self.MFCC_PARTIAL2VECTOR(mfcc_partial)
         # x = torch.cat((x_total, x_partial), dim=-1)
-        return (self.classifier(torch.concat([x,y],dim=-1)), )
+        return (self.classifier(torch.concat([x],dim=-1)), )
 
         
 if __name__ == "__main__":
