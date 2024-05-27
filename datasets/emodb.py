@@ -43,12 +43,6 @@ class emodb_dataset(Dataset, dataset):
         
         
         
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor]:
-        return self.data[index]
-    
-
-    def __len__(self):
-        return len(self.data_path)
 
         
     def preprocess(self, data_paths, leave_out_people):

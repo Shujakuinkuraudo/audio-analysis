@@ -44,23 +44,18 @@ class dataset:
     
     def get_feature(self, data:torch.Tensor, sr) -> torch.Tensor:
         aud=self.extract_features(data)
-        audio=np.array(aud)
         
         noised_audio=self.noise(data)
         aud2=self.extract_features(noised_audio)
-        audio=np.vstack((audio,aud2))
         
         pitched_audio=self.pitch(data,sr)
         aud3=self.extract_features(pitched_audio)
-        audio=np.vstack((audio,aud3))
         
         pitched_audio1=self.pitch(data,sr)
         pitched_noised_audio=self.noise(pitched_audio1)
         aud4=self.extract_features(pitched_noised_audio)
-        audio=np.vstack((audio,aud4))
-        print(audio.shape)
         
-        return torch.tensor(audio)
+        return aud, aud2, aud3, aud4
 
     def get_feature_data(self):
         datas = []
@@ -70,3 +65,11 @@ class dataset:
             datas.append(torch.cat([zcr, energy, max_val, fft.view(-1)], dim=0))
             targets.append(target)
         return datas, targets
+    
+    
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor]:
+        return self.data[index]
+    
+
+    def __len__(self):
+        return len(self.data_path) * 4
