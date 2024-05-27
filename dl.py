@@ -26,7 +26,7 @@ config = {
     "batch_size": 80,
     "lr_step_size" : 50,
     "lr_step_gamma" : 0.9,
-    "optimizer" : torch.optim.Adam
+    "optimizer" : "torch.optim.Adam"
 }
 
 savee_fold, savee_labels = savee_fold_dl(fold = 4)
@@ -36,7 +36,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 for clf in clfs:
     run = wandb.init(project='audio analysis', name=f"ml - {repr(clf)}", reinit=True, config = config)
 
-    optimizer = run.config["optimizer"]
+    optimizer = eval(run.config["optimizer"])
 
     try:
         tp = Train_process()
