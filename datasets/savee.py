@@ -3,8 +3,9 @@ import tqdm
 from torch.utils.data import Dataset
 import torchaudio
 from typing import List,Literal, Tuple
+from .dataset import dataset
 import glob
-class savee_dataset(Dataset):
+class savee_dataset(Dataset, dataset):
     emotions = ["a", "d", "f", "h", "n", "sa", "su"]
     def __init__(self, root: str = "data/savee", train=True, leave_out_people_id: List[int] = [], sr = 16000):
         self.sr = sr
@@ -17,15 +18,16 @@ class savee_dataset(Dataset):
         
         
     def __getitem__(self, index: int) -> Tuple[torch.Tensor]:
+        time = 3
         wave_form, sr = torchaudio.load(self.data_path[index], format="wav")
         if sr != self.sr:
             wave_form = torchaudio.transforms.Resample(sr, self.sr)(wave_form)
             sr = self.sr
             
-        if wave_form.shape[1] < 40000:
-            wave_form = torch.cat((wave_form, torch.zeros(1, 40000-wave_form.shape[1])), dim=1)
-        if wave_form.shape[1] > 40000:
-            wave_form = wave_form[:,:40000]
+        if wave_form.shape[1] < self.sr * time:
+            wave_form = torch.cat((wave_form, torch.zeros(1, self.sr*time-wave_form.shape[1])), dim=1)
+        if wave_form.shape[1] > self.sr*time:
+            wave_form = wave_form[:,:self.sr*time]
 
         wave_form = wave_form.mean(dim=0)
         
@@ -33,16 +35,6 @@ class savee_dataset(Dataset):
         target = self.emo_dict[self.data_path[index].split("/")[-1].split("_")[1][:-6]]
         return *self.get_feature(wave_form, sr), target
     
-    def get_feature(self, wave_form:torch.Tensor, sr) -> Tuple[torch.Tensor]:
-        frames = wave_form.unfold(0, 400, 200)
-        zcr = frames.sign().diff(dim=1).ne(0).sum(dim=1).float() # 199
-        energy = frames.pow(2).sum(dim=1) # 199
-        max_val = frames.abs().max(dim=1).values # 199
-        fft = torch.fft.rfft(frames, 20).real # 199,11
-        
-        mfcc = self.mfcc_transform(wave_form) # 13, 201
-        return zcr, energy, mfcc, max_val, fft
-
     def __len__(self):
         return len(self.data_path)
 
@@ -59,20 +51,12 @@ class savee_dataset(Dataset):
         
         return data
     
-    def get_feature_data(self):
-        datas = []
-        targets = []
-
-        for zcr, energy, mfcc, max_val, fft, target in tqdm.tqdm(self):
-            datas.append(torch.cat([zcr, energy, max_val, fft.view(-1)], dim=0))
-            targets.append(target)
-        return datas, targets
 
         
 def savee_fold_dl(root: str= "data/savee", fold: int = 5, sr = 16000):
     each_peole = 4 // fold
     leave_out_peole = [[j + i for i in range(each_peole)] for j in range(0, 4 - each_peole + 1, each_peole)]
-    return [[savee_dataset(root, train=True, leave_out_people_id=leave_out_peole[i], sr=sr),savee_dataset(root, train=False, leave_out_people_id=leave_out_peole[i], sr=sr)] for i in range(fold)]
+    return [[savee_dataset(root, train=True, leave_out_people_id=leave_out_peole[i], sr=sr),savee_dataset(root, train=False, leave_out_people_id=leave_out_peole[i], sr=sr)] for i in range(fold)], savee_dataset.emotions
 
 def savee_fold_ml(root: str= "data/savee", fold: int = 5, sr = 16000):
     each_peole = 4 // fold
