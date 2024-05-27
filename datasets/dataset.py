@@ -12,7 +12,7 @@ class dataset:
         rmse=librosa.feature.rms(y = data,frame_length=frame_length,hop_length=hop_length)
         return np.squeeze(rmse)
     def mfcc(self,data,sr,frame_length=1024,hop_length=256,flatten:bool=True):
-        mfcc=librosa.feature.mfcc(data,sr=sr)
+        mfcc=librosa.feature.mfcc(y = data,sr=sr)
         return np.squeeze(mfcc.T)if not flatten else np.ravel(mfcc.T)
     def extract_features(self,data,sr=22050,frame_length=1024,hop_length=256):
         result=np.array([])
