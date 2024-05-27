@@ -10,7 +10,7 @@ import glob
 class savee_dataset(Dataset, dataset):
     emotions = ["a", "d", "f", "h", "n", "sa", "su"]
     def __init__(self, root: str = "data/savee", train=True, leave_out_people_id: List[int] = [], sr = 16000, win_length = 200, hop_length = 100, n_fft=400, cache=None, use_cache=True):
-        self.time = 4
+        self.time = 2.5
         self.sr = sr
         self.emo_dict = {self.emotions[i]:i for i in range(len(self.emotions))}
         self.train = train

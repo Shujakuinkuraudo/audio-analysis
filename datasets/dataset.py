@@ -14,7 +14,7 @@ class dataset:
     def mfcc(self,data,sr,frame_length=1024,hop_length=256,flatten:bool=True):
         mfcc=librosa.feature.mfcc(y = data,sr=sr)
         return np.squeeze(mfcc.T)if not flatten else np.ravel(mfcc.T)
-    def extract_features(self,data,sr=22050,frame_length=1024,hop_length=256):
+    def extract_features(self,data,sr=16000,frame_length=1024,hop_length=256):
         result=np.array([])
         
         result=np.hstack((result,
