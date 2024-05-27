@@ -38,14 +38,17 @@ class CNN(nn.Module):
             nn.LazyBatchNorm2d(),
             nn.ReLU(),
             nn.MaxPool2d(2),
+
             nn.Conv2d(16, 32, 3, padding="same"),
             nn.LazyBatchNorm2d(),
             nn.ReLU(),
             nn.MaxPool2d(2),
+
             nn.Conv2d(32, 256, 3, padding="same"),
             nn.LazyBatchNorm2d(),
             nn.ReLU(),
             nn.MaxPool2d(2),
+            
             ResidualBlock(256, 256),
             ResidualBlock(256, 256),
             nn.AdaptiveAvgPool2d((16, 16)),
