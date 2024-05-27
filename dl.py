@@ -27,9 +27,9 @@ config = {
     "lr_step_size" : 50,
     "lr_step_gamma" : 0.7,
     "optimizer" : "torch.optim.Adam",
-    "win_length" : 400,
-    "hop_length" : 200,
-    "n_fft" : 400
+    "win_length" : 512,
+    "hop_length" : 256,
+    "n_fft" : 2048
 }
 
 savee_fold, savee_labels = savee_fold_dl(fold = 4, n_fft=config["n_fft"], win_length=config["win_length"], hop_length=config["hop_length"])
@@ -43,11 +43,12 @@ for clf in clfs:
 
     try:
         tp = Train_process()
+        acc,max_acc = tp.test_fold(savee_fold, model_cls=clf, optimizer_cls=optimizer, labels=savee_labels, device=device, run=run, epochs=args.epochs, name="savee")
+        run.log({"savee - 4 - acc": acc, "savee - 4 - maxacc": max_acc})
+
         acc,max_acc = tp.test_fold(emodb_fold, model_cls=clf, optimizer_cls=optimizer, labels=savee_labels, device=device, run=run, epochs=args.epochs, name="emodb")
         run.log({"emodb - 5 - acc": acc, "emodb - 5 - maxacc": max_acc})
         
-        acc,max_acc = tp.test_fold(savee_fold, model_cls=clf, optimizer_cls=optimizer, labels=savee_labels, device=device, run=run, epochs=args.epochs, name="savee")
-        run.log({"savee - 4 - acc": acc, "savee - 4 - maxacc": max_acc})
 
     finally:
         run.finish()
