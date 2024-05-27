@@ -19,7 +19,7 @@ class dataset:
         datas = []
         targets = []
 
-        for zcr, energy, mfcc_total, max_val, fft,mfcc_partial, target in tqdm.tqdm(self):
+        for zcr, energy, mfcc_total, max_val, fft,mfcc_partial,wave_form, target in tqdm.tqdm(self):
             datas.append(torch.cat([zcr, energy, max_val, fft.view(-1)], dim=0))
             targets.append(target)
         return datas, targets

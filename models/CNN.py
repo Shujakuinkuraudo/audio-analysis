@@ -42,7 +42,18 @@ class CNN(nn.Module):
             nn.ReLU(),
             ResidualBlock(256, 256),
             ResidualBlock(256, 256),
-            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.AdaptiveAvgPool2d((16, 16)),
+            nn.Flatten(),
+            nn.LazyLinear(1024)
+        )
+        self.WAVE_FORM2VECTOR = nn.Sequential(
+            nn.Conv1d(1, 16, 3, padding=1),
+            nn.ReLU(),
+            nn.Conv1d(16, 32, 3, padding=1),
+            nn.ReLU(),
+            nn.Conv1d(32, 256, 3, padding=1),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool1d(256),
             nn.Flatten(),
             nn.LazyLinear(1024)
         )
@@ -63,11 +74,12 @@ class CNN(nn.Module):
     def loss_function(self, y, target):
         return nn.functional.cross_entropy(y, target)
     
-    def forward(self, mfcc_total, mfcc_partial):
+    def forward(self, mfcc_total, **kwargs):
         x = self.MFCC_TOTAL2VECTOR(mfcc_total)
+        y = self.WAVE_FORM2VECTOR(kwargs["wave_form"])
         # x_partial = self.MFCC_PARTIAL2VECTOR(mfcc_partial)
         # x = torch.cat((x_total, x_partial), dim=-1)
-        return (self.classifier(x), )
+        return (self.classifier(x + y), )
 
         
 if __name__ == "__main__":

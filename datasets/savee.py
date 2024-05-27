@@ -34,7 +34,7 @@ class savee_dataset(Dataset, dataset):
             wave_form = wave_form.mean(dim=0)
             
             target = self.emo_dict[self.data_path[index].split("/")[-1].split("_")[1][:-6]]
-            data.append([*self.get_feature(wave_form, sr), target])
+            data.append([*self.get_feature(wave_form, sr), target,wave_form])
         return data
         
     def __getitem__(self, index: int) -> Tuple[torch.Tensor]:
