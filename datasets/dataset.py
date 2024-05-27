@@ -39,7 +39,7 @@ class dataset:
         return np.roll(data, shift_range)
     # PITCH
     def pitch(self,data, sampling_rate, pitch_factor=0.7):
-        return librosa.effects.pitch_shift(data, sampling_rate, pitch_factor) 
+        return librosa.effects.pitch_shift(data, sr = sampling_rate, n_steps=pitch_factor) 
     
     
     def get_feature(self, data:torch.Tensor, sr) -> torch.Tensor:
