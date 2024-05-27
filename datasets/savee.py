@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 import torchaudio
 from typing import List,Literal, Tuple
 from .dataset import dataset
+from torchvision import transforms
 import glob
 class savee_dataset(Dataset, dataset):
     emotions = ["a", "d", "f", "h", "n", "sa", "su"]
@@ -15,7 +16,7 @@ class savee_dataset(Dataset, dataset):
         self.time = 4
 
         self.data_path = self.preprocess(glob.glob(root+"/*.wav"), [self.people_id[i] for i in leave_out_people_id])
-        self.mfcc_transform = torchaudio.transforms.MFCC(n_mfcc=13, melkwargs={"n_fft": n_fft,"win_length":win_length, "hop_length": hop_length, "n_mels": 23}, sample_rate=sr)
+        self.mfcc_transform = torchaudio.transforms.MFCC(n_mfcc=13, melkwargs={"n_fft": n_fft,"win_length":win_length, "hop_length": hop_length, "n_mels": 23}, log_mels=True, sample_rate=sr)
         self.data = self.get_data()
     
     def get_data(self):
