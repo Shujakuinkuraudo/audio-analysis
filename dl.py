@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 import argparse
 
 args = argparse.ArgumentParser()
-args.add_argument("--epochs", type=int, default=500)
+args.add_argument("--epochs", type=int, default=1000)
 args.add_argument("--model", type=str, default = "ALL")
 args = args.parse_args()
 
