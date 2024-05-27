@@ -7,7 +7,7 @@ from .dataset import dataset
 import glob
 class emodb_dataset(Dataset, dataset):
     emotions = ["W", "L", "E", "A", "F", "T", "N"]
-    def __init__(self, root: str = "data/emodb", download: bool = True, train=True, leave_out_people_id: List[int] = [], sr = 16000):
+    def __init__(self, root: str = "data/emodb", download: bool = True, train=True, leave_out_people_id: List[int] = [], sr = 16000,n_fft = 400, win_length=200, hop_length = 100):
         self.sr = sr
         self.emo_dict = {self.emotions[i]:i for i in range(len(self.emotions))}
         self.train = train
@@ -15,7 +15,7 @@ class emodb_dataset(Dataset, dataset):
         self.time = 4
 
         self.data_path = self.preprocess(glob.glob(root+"/*.wav"), [self.people_id[i] for i in leave_out_people_id])
-        self.mfcc_transform = torchaudio.transforms.MFCC(n_mfcc=13, melkwargs={"n_fft": 400,"win_length":200, "hop_length": 100, "n_mels": 23}, sample_rate=sr)
+        self.mfcc_transform = torchaudio.transforms.MFCC(n_mfcc=13, melkwargs={"n_fft": n_fft,"win_length":win_length, "hop_length": hop_length, "n_mels": 23}, sample_rate=sr)
         self.data = self.get_data()
     
     def get_data(self):
@@ -62,10 +62,10 @@ class emodb_dataset(Dataset, dataset):
     
 
         
-def emodb_fold_dl(root: str= "data/emodb", fold: int = 5, sr = 16000):
+def emodb_fold_dl(root: str= "data/emodb", fold: int = 5, sr = 16000, win_length=200, hop_length=100, n_fft=400):
     each_peole = 10 // fold
     leave_out_peole = [[j + i for i in range(each_peole)] for j in range(0, 10 - each_peole + 1, each_peole)]
-    return [[emodb_dataset(root, train=True, leave_out_people_id=leave_out_peole[i], sr=sr),emodb_dataset(root, train=False, leave_out_people_id=leave_out_peole[i], sr=sr)] for i in range(fold)], emodb_dataset.emotions
+    return [[emodb_dataset(root, train=True, leave_out_people_id=leave_out_peole[i], sr=sr, win_length=win_length, hop_length=hop_length, n_fft=n_fft),emodb_dataset(root, train=False, leave_out_people_id=leave_out_peole[i], sr=sr, win_length=win_length, hop_length=hop_length, n_fft=n_fft)] for i in range(fold)], emodb_dataset.emotions
 
 def emodb_fold_ml(root: str= "data/emodb", fold: int = 5, sr = 16000):
     each_peole = 10 // fold
