@@ -35,7 +35,7 @@ config = {
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 for clf in clfs:
-    run = wandb.init(project='audio analysis', name=f"ml - {repr(clf)}", reinit=True, config = config)
+    run = wandb.init(project='audio analysis', name=f"speech-emotion-recognition-97-25-accuracy", reinit=True, config = config)
 
     optimizer = eval(run.config["optimizer"])
 
