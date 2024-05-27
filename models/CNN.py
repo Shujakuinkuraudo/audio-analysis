@@ -92,11 +92,11 @@ class CNN(nn.Module):
         return nn.functional.cross_entropy(y, target)
     
     def forward(self, mfcc_total, **kwargs):
-        # x = self.MFCC_TOTAL2VECTOR(mfcc_total)
-        y = self.WAVE_FORM2VECTOR(kwargs["wave_form"])
+        x = self.MFCC_TOTAL2VECTOR(mfcc_total)
+        # y = self.WAVE_FORM2VECTOR(kwargs["wave_form"])
         # x_partial = self.MFCC_PARTIAL2VECTOR(mfcc_partial)
         # x = torch.cat((x_total, x_partial), dim=-1)
-        return (self.classifier(torch.concat([y],dim=-1)), )
+        return (self.classifier(torch.concat([x],dim=-1)), )
 
         
 if __name__ == "__main__":
