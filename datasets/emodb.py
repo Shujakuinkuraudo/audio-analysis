@@ -79,9 +79,10 @@ class emodb_dataset(Dataset, dataset):
 
         
 def emodb_fold_dl(root: str= "data/emodb", fold: int = 5, sr = 16000, win_length=200, hop_length=100, n_fft=400):
+    cache = {}
     each_peole = 10 // fold
     leave_out_peole = [[j + i for i in range(each_peole)] for j in range(0, 10 - each_peole + 1, each_peole)]
-    return [[emodb_dataset(root, train=True, leave_out_people_id=leave_out_peole[i], sr=sr, win_length=win_length, hop_length=hop_length, n_fft=n_fft),emodb_dataset(root, train=False, leave_out_people_id=leave_out_peole[i], sr=sr, win_length=win_length, hop_length=hop_length, n_fft=n_fft)] for i in range(fold)], emodb_dataset.emotions
+    return [[emodb_dataset(root, train=True, leave_out_people_id=leave_out_peole[i], sr=sr, win_length=win_length, hop_length=hop_length, n_fft=n_fft, cache=cache, use_cache=True),emodb_dataset(root, train=False, leave_out_people_id=leave_out_peole[i], sr=sr, win_length=win_length, hop_length=hop_length, n_fft=n_fft, cache=cache, use_cache=True)] for i in range(fold)], emodb_dataset.emotions
 
 def emodb_fold_ml(root: str= "data/emodb", fold: int = 5, sr = 16000):
     each_peole = 10 // fold

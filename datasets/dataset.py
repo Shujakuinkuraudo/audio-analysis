@@ -55,7 +55,7 @@ class dataset:
         pitched_noised_audio=self.noise(pitched_audio1)
         aud4=self.extract_features(pitched_noised_audio)
         
-        return torch.tensor(aud).view(1,-1), torch.tensor(aud2).view(1,-1), torch.tensor(aud3).view(1,-1), torch.tensor(aud4).view(1,-1)
+        return torch.tensor(aud, dtype=torch.float32).view(1,-1), torch.tensor(aud2, dtype=torch.float32).view(1,-1), torch.tensor(aud3, dtype=torch.float32).view(1,-1), torch.tensor(aud4, dtype=torch.float32).view(1,-1)
 
     def get_feature_data(self):
         datas = []
