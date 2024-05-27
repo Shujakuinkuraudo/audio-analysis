@@ -22,7 +22,7 @@ class savee_dataset(Dataset, dataset):
     
     def get_data(self):
         data = []
-        for index in range(len(self)/4):
+        for index in range(len(self)//4):
             wave_form, sr = torchaudio.load(self.data_path[index], format="wav")
             if sr != self.sr:
                 wave_form = torchaudio.transforms.Resample(sr, self.sr)(wave_form)

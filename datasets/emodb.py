@@ -20,7 +20,7 @@ class emodb_dataset(Dataset, dataset):
     
     def get_data(self):
         data = []
-        for index in range(len(self)):
+        for index in range(len(self)//4):
             wave_form, sr = torchaudio.load(self.data_path[index], format="wav")
             if sr != self.sr:
                 wave_form = torchaudio.transforms.Resample(sr, self.sr)(wave_form)
@@ -38,7 +38,11 @@ class emodb_dataset(Dataset, dataset):
             
                 
             target = self.emo_dict[self.data_path[index].split("/")[-1][5]]
-            data.append([*self.get_feature(wave_form, sr), target])
+            aud1, aud2, aud3 ,aud4 = self.get_feature(wave_form, sr)
+            data.append([aud1, target])
+            data.append([aud2, target])
+            data.append([aud3, target])
+            data.append([aud4, target])
         return data
         
         
