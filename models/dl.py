@@ -37,7 +37,7 @@ class Train_process:
             for epoch in (epoch_tq := tqdm.tqdm(range(epochs))):
                 model.train()
                 for zcr, energy, mfcc, max_val, fft, mfcc_partial,wave_form, target in train_dataloader:
-                    mfcc, mfcc_partial = mfcc.to(device), mfcc_partial.to(device)
+                    mfcc, mfcc_partial,wave_form = mfcc.to(device), mfcc_partial.to(device), wave_form.to(device)
                     target = target.to(device)
                     output = model(mfcc, mfcc_parital=mfcc_partial, wave_form=wave_form)
                     optimizer.zero_grad()
@@ -51,7 +51,7 @@ class Train_process:
                 outputs = []
                 targets = []
                 for zcr, energy, mfcc, max_val, fft, mfcc_partial,wave_form, target in test_dataloader:
-                    mfcc, mfcc_partial = mfcc.to(device), mfcc_partial.to(device)
+                    mfcc, mfcc_partial,wave_form = mfcc.to(device), mfcc_partial.to(device), wave_form.to(device)
                     target = target.to(device)
                     output = model(mfcc, mfcc_parital=mfcc_partial, wave_form=wave_form)[0]
                     outputs.extend(output.argmax(dim=-1).cpu().numpy().tolist())

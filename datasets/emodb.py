@@ -35,7 +35,7 @@ class emodb_dataset(Dataset, dataset):
             
                 
             target = self.emo_dict[self.data_path[index].split("/")[-1][5]]
-            data.append([*self.get_feature(wave_form, sr), wave_form, target])
+            data.append([*self.get_feature(wave_form, sr), wave_form.view(1,-1), target])
         return data
         
         
