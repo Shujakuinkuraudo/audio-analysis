@@ -34,10 +34,13 @@ class CNN(nn.Module):
     def __init__(self, num_classes = 7):
         super(CNN, self).__init__()
         self.MFCC_TOTAL2VECTOR = nn.Sequential(
+            nn.LazyBatchNorm2d(),
             nn.Conv2d(1, 16, 3, padding="same"),
             nn.ReLU(),
+            nn.LazyBatchNorm2d(),
             nn.Conv2d(16, 32, 3, padding="same"),
             nn.ReLU(),
+            nn.LazyBatchNorm2d(),
             nn.Conv2d(32, 256, 3, padding="same"),
             nn.ReLU(),
             ResidualBlock(256, 256),
