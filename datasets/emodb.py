@@ -43,6 +43,7 @@ class emodb_dataset(Dataset, dataset):
             data.append([aud2, target])
             data.append([aud3, target])
             data.append([aud4, target])
+        print("ok")
         return data
         
         
