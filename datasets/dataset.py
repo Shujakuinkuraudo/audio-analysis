@@ -67,9 +67,3 @@ class dataset:
         return datas, targets
     
     
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor]:
-        return self.data[index]
-    
-
-    def __len__(self):
-        return len(self.data_path) * 4

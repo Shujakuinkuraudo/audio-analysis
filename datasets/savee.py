@@ -9,12 +9,14 @@ from torchvision import transforms
 import glob
 class savee_dataset(Dataset, dataset):
     emotions = ["a", "d", "f", "h", "n", "sa", "su"]
-    def __init__(self, root: str = "data/savee", train=True, leave_out_people_id: List[int] = [], sr = 16000, win_length = 200, hop_length = 100, n_fft=400):
+    def __init__(self, root: str = "data/savee", train=True, leave_out_people_id: List[int] = [], sr = 16000, win_length = 200, hop_length = 100, n_fft=400, cache=None, use_cache=True):
         self.time = 4
         self.sr = sr
         self.emo_dict = {self.emotions[i]:i for i in range(len(self.emotions))}
         self.train = train
         self.people_id = ["DC", "JE", "JK", "KL"]
+        self.cache = cache
+        self.use_cache = use_cache
 
         self.data_path = self.preprocess(glob.glob(root+"/*.wav"), [self.people_id[i] for i in leave_out_people_id])
         self.data = self.get_data()
@@ -22,32 +24,45 @@ class savee_dataset(Dataset, dataset):
     def get_data(self):
         data = []
         for index in range(len(self)//4):
-            wave_form, sr = torchaudio.load(self.data_path[index], format="wav")
-            if sr != self.sr:
-                wave_form = torchaudio.transforms.Resample(sr, self.sr)(wave_form)
-                sr = self.sr
+            if self.data_path[index] not in self.cache:
+                wave_form, sr = torchaudio.load(self.data_path[index], format="wav")
+                if sr != self.sr:
+                    wave_form = torchaudio.transforms.Resample(sr, self.sr)(wave_form)
+                    sr = self.sr
+                    
+                if wave_form.shape[1] < self.sr * self.time:
+                    wave_form = torch.cat((wave_form, torch.zeros(1, self.sr*self.time-wave_form.shape[1])), dim=1)
+                if wave_form.shape[1] > self.sr*self.time:
+                    wave_form = wave_form[:,:self.sr*self.time]
+                wave_form = wave_form.numpy()
+
+                # wave_form = wave_form.mean(dim=0)
+                # wave_form /= wave_form.abs().topk(int(0.02 * self.sr * self.time)).values.mean()
                 
-            if wave_form.shape[1] < self.sr * self.time:
-                wave_form = torch.cat((wave_form, torch.zeros(1, self.sr*self.time-wave_form.shape[1])), dim=1)
-            if wave_form.shape[1] > self.sr*self.time:
-                wave_form = wave_form[:,:self.sr*self.time]
-            wave_form = wave_form.numpy()
+                target = self.emo_dict[self.data_path[index].split("/")[-1].split("_")[1][:-6]]
 
-            # wave_form = wave_form.mean(dim=0)
-            # wave_form /= wave_form.abs().topk(int(0.02 * self.sr * self.time)).values.mean()
-            
-            target = self.emo_dict[self.data_path[index].split("/")[-1].split("_")[1][:-6]]
-
-            
-            aud1, aud2, aud3 ,aud4 = self.get_feature(wave_form, sr)
-            data.append([aud1, target])
-            data.append([aud2, target])
-            data.append([aud3, target])
-            data.append([aud4, target])
-
-        print("ok")
+                
+                aud1, aud2, aud3 ,aud4 = self.get_feature(wave_form, sr)
+                data.append([aud1, target])
+                data.append([aud2, target])
+                data.append([aud3, target])
+                data.append([aud4, target])
+                self.cache[self.data_path[index]] = [aud1,aud2,aud3,aud4,target]
+            else:
+                aud1, aud2, aud3, aud4, target = self.cache[self.data_path[index]]
+                data.append([aud1, target])
+                data.append([aud2, target])
+                data.append([aud3, target])
+                data.append([aud4, target])
+                
         return data
         
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor]:
+        return self.data[index]
+    
+
+    def __len__(self):
+        return len(self.data_path) * 4
 
         
     def preprocess(self, data_paths, leave_out_people):
@@ -65,9 +80,10 @@ class savee_dataset(Dataset, dataset):
 
         
 def savee_fold_dl(root: str= "data/savee", fold: int = 5, sr = 16000, n_fft=400, hop_length=100, win_length = 200):
+    cache = {}
     each_peole = 4 // fold
     leave_out_peole = [[j + i for i in range(each_peole)] for j in range(0, 4 - each_peole + 1, each_peole)]
-    return [[savee_dataset(root, train=True, leave_out_people_id=leave_out_peole[i], sr=sr, win_length=win_length, hop_length=hop_length, n_fft=n_fft),savee_dataset(root, train=False, leave_out_people_id=leave_out_peole[i], sr=sr, win_length=win_length, hop_length=hop_length, n_fft=n_fft)] for i in range(fold)], savee_dataset.emotions
+    return [[savee_dataset(root, train=True, leave_out_people_id=leave_out_peole[i], sr=sr, win_length=win_length, hop_length=hop_length, n_fft=n_fft,cache=cache),savee_dataset(root, train=False, leave_out_people_id=leave_out_peole[i], sr=sr, win_length=win_length, hop_length=hop_length, n_fft=n_fft,cache=cache)] for i in range(fold)], savee_dataset.emotions
 
 def savee_fold_ml(root: str= "data/savee", fold: int = 5, sr = 16000):
     each_peole = 4 // fold
