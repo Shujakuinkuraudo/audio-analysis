@@ -27,9 +27,9 @@ config = {
     "lr_step_size" : 50,
     "lr_step_gamma" : 0.7,
     "optimizer" : "torch.optim.Adam",
-    "win_length" : 512,
-    "hop_length" : 256,
-    "n_fft" : 2048
+    "win_length" : 400,
+    "hop_length" : 200,
+    "n_fft" : 512
 }
 
 savee_fold, savee_labels = savee_fold_dl(fold = 4, n_fft=config["n_fft"], win_length=config["win_length"], hop_length=config["hop_length"])
