@@ -33,7 +33,7 @@ class savee_dataset(Dataset, dataset):
                 wave_form = wave_form[:,:self.sr*self.time]
 
             wave_form = wave_form.mean(dim=0)
-            wave_form /= wave_form.abs().max()
+            wave_form /= wave_form.abs().topk(0.01 * self.sr * self.time).values.mean()
             
             target = self.emo_dict[self.data_path[index].split("/")[-1].split("_")[1][:-6]]
             data.append([*self.get_feature(wave_form, sr),wave_form.view(1,-1), target])
