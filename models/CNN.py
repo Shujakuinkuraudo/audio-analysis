@@ -34,24 +34,42 @@ class CNN(nn.Module):
     def __init__(self, num_classes = 7):
         super(CNN, self).__init__()
         self.MFCC_TOTAL2VECTOR = nn.Sequential(
-            nn.Conv2d(1, 16, 3, padding="same"),
+            nn.LazyConv1d(512, kernel_size=5, stride=1),
             nn.ReLU(),
-            # nn.MaxPool2d(2),
+            nn.LazyBatchNorm1d(),
+            nn.MaxPool1d(5, stride=2),
 
-            nn.Conv2d(16, 32, 3, padding="same"),
+            nn.LazyConv1d(512, kernel_size=5, stride=1),
             nn.ReLU(),
-            # nn.MaxPool2d(2),
+            nn.LazyBatchNorm1d(),
+            nn.MaxPool1d(5, stride=2),
+            nn.Dropout(0.2),
+            
 
-            nn.Conv2d(32, 64, 3, padding="same"),
+            nn.LazyConv1d(256, kernel_size=5, stride=1),
             nn.ReLU(),
-            # nn.MaxPool2d(2),
+            nn.LazyBatchNorm1d(),
+            nn.MaxPool1d(5, stride=2),
 
-            ResidualBlock(64, 64),
-            ResidualBlock(64, 64),
-            ResidualBlock(64, 64),
-            nn.AdaptiveAvgPool2d((16, 16)),
+            nn.LazyConv1d(256, kernel_size=5, stride=1),
+            nn.ReLU(),
+            nn.LazyBatchNorm1d(),
+            nn.MaxPool1d(5, stride=2),
+            nn.Dropout(0.2),
+            
+
+            nn.LazyConv1d(128, kernel_size=5, stride=1),
+            nn.ReLU(),
+            nn.LazyBatchNorm1d(),
+            nn.MaxPool1d(3, stride=2),
+            nn.Dropout(0.2),
+
             nn.Flatten(),
-            nn.LazyLinear(1024)
+            nn.LazyLinear(512),
+            nn.ReLU(),
+            nn.LazyBatchNorm1d(),
+            nn.LazyLinear(num_classes)
+            
         )
         self.WAVE_FORM2VECTOR = nn.Sequential(
             nn.LazyBatchNorm1d(),

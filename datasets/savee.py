@@ -17,7 +17,6 @@ class savee_dataset(Dataset, dataset):
         self.people_id = ["DC", "JE", "JK", "KL"]
 
         self.data_path = self.preprocess(glob.glob(root+"/*.wav"), [self.people_id[i] for i in leave_out_people_id])
-        self.mfcc_transform = torchaudio.transforms.MFCC(n_mfcc=23, melkwargs={"n_fft": n_fft,"win_length":win_length, "hop_length": hop_length, "n_mels": 40}, sample_rate=sr)
         self.data = self.get_data()
     
     def get_data(self):

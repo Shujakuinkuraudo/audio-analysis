@@ -37,10 +37,10 @@ class Train_process:
 
             for epoch in (epoch_tq := tqdm.tqdm(range(epochs))):
                 model.train()
-                for zcr, energy, mfcc, max_val, fft, mfcc_partial,wave_form, target in train_dataloader:
-                    mfcc, mfcc_partial,wave_form = mfcc.to(device), mfcc_partial.to(device), wave_form.to(device)
+                for feature, target in train_dataloader:
+                    feature = feature.to(device)
                     target = target.to(device)
-                    output = model(mfcc, mfcc_parital=mfcc_partial, wave_form=wave_form)
+                    output = model(feature)
                     optimizer.zero_grad()
                     loss = model.loss_function(*output, target)
                     loss.backward()
@@ -51,10 +51,10 @@ class Train_process:
                 model.eval()
                 outputs = []
                 targets = []
-                for zcr, energy, mfcc, max_val, fft, mfcc_partial,wave_form, target in test_dataloader:
-                    mfcc, mfcc_partial,wave_form = mfcc.to(device), mfcc_partial.to(device), wave_form.to(device)
+                for feature, target in test_dataloader:
+                    feature = feature.to(device)
                     target = target.to(device)
-                    output = model(mfcc, mfcc_parital=mfcc_partial, wave_form=wave_form)[0]
+                    output = model(feature)[0]
                     outputs.extend(output.argmax(dim=-1).cpu().numpy().tolist())
                     targets.extend(target.cpu().numpy().tolist())
                 now_acc = accuracy_score(outputs,targets)
