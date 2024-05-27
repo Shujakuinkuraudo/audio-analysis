@@ -40,8 +40,8 @@ class CNN(nn.Module):
             nn.ReLU(),
             nn.Conv2d(32, 64, 3, padding="same"),
             nn.ReLU(),
-            ResidualBlock(64, 64),
-            ResidualBlock(64, 64),
+            ResidualBlock(64, 256),
+            ResidualBlock(256, 256),
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
             nn.LazyLinear(1024)
