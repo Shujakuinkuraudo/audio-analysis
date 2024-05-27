@@ -36,18 +36,19 @@ class CNN(nn.Module):
         self.MFCC_TOTAL2VECTOR = nn.Sequential(
             nn.Conv2d(1, 16, 3, padding="same"),
             nn.ReLU(),
-            nn.MaxPool2d(2),
+            # nn.MaxPool2d(2),
 
             nn.Conv2d(16, 32, 3, padding="same"),
             nn.ReLU(),
-            nn.MaxPool2d(2),
+            # nn.MaxPool2d(2),
 
-            nn.Conv2d(32, 256, 3, padding="same"),
+            nn.Conv2d(32, 64, 3, padding="same"),
             nn.ReLU(),
-            nn.MaxPool2d(2),
+            # nn.MaxPool2d(2),
 
-            ResidualBlock(256, 256),
-            ResidualBlock(256, 256),
+            ResidualBlock(64, 64),
+            ResidualBlock(64, 64),
+            ResidualBlock(64, 64),
             nn.AdaptiveAvgPool2d((16, 16)),
             nn.Flatten(),
             nn.LazyLinear(1024)
