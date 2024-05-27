@@ -9,7 +9,7 @@ class dataset:
         zcr=librosa.feature.zero_crossing_rate(data,frame_length=frame_length,hop_length=hop_length)
         return np.squeeze(zcr)
     def rmse(self,data,frame_length=1024,hop_length=256):
-        rmse=librosa.feature.rms(data,frame_length=frame_length,hop_length=hop_length)
+        rmse=librosa.feature.rms(y = data,frame_length=frame_length,hop_length=hop_length)
         return np.squeeze(rmse)
     def mfcc(self,data,sr,frame_length=1024,hop_length=256,flatten:bool=True):
         mfcc=librosa.feature.mfcc(data,sr=sr)
