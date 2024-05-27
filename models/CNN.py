@@ -57,7 +57,7 @@ class CNN(nn.Module):
         )
         self.WAVE_FORM2VECTOR = nn.Sequential(
             nn.LazyBatchNorm1d(),
-            nn.AdaptiveAvgPool1d(4000),
+            nn.AdaptiveAvgPool1d(4096),
             nn.Conv1d(1, 16, 3, padding=1),
             nn.ReLU(),
             nn.MaxPool1d(2),
