@@ -5,10 +5,6 @@ import numpy as np
 import librosa
 import tqdm
 class dataset:
-    def __init__(self):
-        self.time = 2.5
-
-        
     def zcr(self,data,frame_length,hop_length):
         zcr=librosa.feature.zero_crossing_rate(data,frame_length=frame_length,hop_length=hop_length)
         return np.squeeze(zcr)

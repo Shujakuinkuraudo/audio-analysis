@@ -8,7 +8,7 @@ import glob
 class emodb_dataset(Dataset, dataset):
     emotions = ["W", "L", "E", "A", "F", "T", "N"]
     def __init__(self, root: str = "data/emodb", download: bool = True, train=True, leave_out_people_id: List[int] = [], sr = 16000,n_fft = 400, win_length=200, hop_length = 100):
-        super(dataset).__init__()
+        self.time = 4
         self.sr = sr
         self.emo_dict = {self.emotions[i]:i for i in range(len(self.emotions))}
         self.train = train
