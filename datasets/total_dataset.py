@@ -11,28 +11,28 @@ class emodb_dataset:
         self.time = 4
         self.mfcc_transform = torchaudio.transforms.MFCC(n_mfcc=13, melkwargs={"n_fft": 800,"win_length":200, "hop_length": 50, "n_mels": 23}, sample_rate=sr)
 
-        self.emodb_dict = {
-            "W" :0, # Anger
-            "L" :1,
-            "E" :2,
-            "A" :3,
-            "F" :4,
-            "T" :5,
-            "N" :6
-        }
         self.dataset_people_dict = {}
-        self.dataset_people_dict["emodb"] = self.get_emodb_data(glob.glob(emodb_root+"/*.wav"))
-
-        # self.savee_dict = {
-        #     "a" : 0,
-        #     "d" : 2,
-        #     "f" : 3,
-        #     "h" : 4,
-        #     "n" : 6,
-        #     "sa": 5,
-        #     "su": 7
+        # self.emodb_dict = {
+        #     "W" :0, # Anger
+        #     "L" :1,
+        #     "E" :2,
+        #     "A" :3,
+        #     "F" :4,
+        #     "T" :5,
+        #     "N" :6
         # }
-        # self.dataset_people_dict["savee"] = self.get_savee_data(glob.glob(savee_root+"/*.wav"))
+        # self.dataset_people_dict["emodb"] = self.get_emodb_data(glob.glob(emodb_root+"/*.wav"))
+
+        self.savee_dict = {
+            "a" : 0,
+            "d" : 2,
+            "f" : 3,
+            "h" : 4,
+            "n" : 6,
+            "sa": 5,
+            "su": 7
+        }
+        self.dataset_people_dict["savee"] = self.get_savee_data(glob.glob(savee_root+"/*.wav"))
     
     def get_emodb_data(self, data_path):
         data_people = {}
@@ -121,18 +121,18 @@ if __name__ == "__main__":
             optimizer.step()
             losses.append(loss.item())
             tqdm_train.set_description(f"loss: {sum(losses)/len(losses)}")
-        for (zcr, energy, mfcc_total, max_val, fft, mfcc_partial), y in (tqdm_train := tqdm.tqdm(test_loader, total=len(test_loader), leave=False)):
-            optimizer.zero_grad()
-            mfcc_total = mfcc_total.to(device)
-            mfcc_partial = mfcc_partial.to(device)
-            y = y.to(device)
+        # for (zcr, energy, mfcc_total, max_val, fft, mfcc_partial), y in (tqdm_train := tqdm.tqdm(test_loader, total=len(train_loader), leave=False)):
+        #     optimizer.zero_grad()
+        #     mfcc_total = mfcc_total.to(device)
+        #     mfcc_partial = mfcc_partial.to(device)
+        #     y = y.to(device)
             
-            output = model.forward(mfcc_total=mfcc_total, mfcc_partial=mfcc_partial)
-            loss = model.loss_function(output, y)
-            loss.backward()
-            optimizer.step()
-            losses.append(loss.item())
-            tqdm_train.set_description(f"loss: {sum(losses)/len(losses)}")
+        #     output = model.forward(mfcc_total=mfcc_total, mfcc_partial=mfcc_partial)
+        #     loss = model.loss_function(output, y)
+        #     loss.backward()
+        #     optimizer.step()
+        #     losses.append(loss.item())
+        #     tqdm_train.set_description(f"loss: {sum(losses)/len(losses)}")
         lr_scheduler.step()
         
         model.eval()
@@ -147,7 +147,7 @@ if __name__ == "__main__":
             acc.append((pred == y).sum().item() / len(y))
             tqdm_test.set_description(f"accuracy: {sum(acc)/len(acc)}")
         tqdm_epoch.set_description(f"accuracy: {sum(acc)/len(acc)}")
-        run.log({"total - emodb - loss": sum(losses)/len(losses), "total - emodb - accuracy": sum(acc)/len(acc), "epoch": _})
+        run.log({"total - savee - loss": sum(losses)/len(losses), "total - savee - accuracy": sum(acc)/len(acc), "epoch": _})
 
 
 
