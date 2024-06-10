@@ -5,14 +5,18 @@ import torch
 def conv3x3(in_channels, out_channels, stride=1):
     return nn.Conv2d(in_channels, out_channels, kernel_size=3, 
                     stride=stride, padding=1, bias=False)
+
+def conv5x5(in_channels, out_channels, stride=1):
+    return nn.Conv2d(in_channels, out_channels, kernel_size=5, 
+                    stride=stride, padding=2, bias=False)
     
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1, downsample=None):
         super(ResidualBlock, self).__init__()
-        self.conv1 = conv3x3(in_channels, out_channels, stride)
+        self.conv1 = conv5x5(in_channels, out_channels, stride)
         self.bn1 = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(out_channels, out_channels)
+        self.conv2 = conv5x5(out_channels, out_channels)
         self.bn2 = nn.BatchNorm2d(out_channels)
         self.downsample = downsample
         
@@ -34,25 +38,28 @@ class CNN(nn.Module):
     def __init__(self, num_classes = 7):
         super(CNN, self).__init__()
         self.MFCC_TOTAL2VECTOR = nn.Sequential(
-            nn.LazyConv2d(128, (3,3), padding=1),
+            nn.LazyConv2d(64, (5,5), padding=2),
             nn.ReLU(),
             nn.LazyBatchNorm2d(),
-            ResidualBlock(128, 128),
-            ResidualBlock(128, 128),
-            nn.AdaptiveAvgPool2d((64, 64)),
+            ResidualBlock(64, 64),
+            ResidualBlock(64, 64),
+            nn.AdaptiveAvgPool2d((8, 8)),
             nn.Flatten(),
-            nn.LazyLinear(1024)
+            nn.LazyLinear(128)
         )
         self.MFCC_PARTIAL2VECTOR = nn.Sequential(
-            nn.LazyConv2d(128, (3,3), padding=1),
+            nn.LazyConv2d(64, (5,5), padding=2),
             nn.ReLU(),
             nn.LazyBatchNorm2d(),
-            ResidualBlock(128, 128),
-            ResidualBlock(128, 128),
-            nn.AdaptiveAvgPool2d((64, 64)),
-            nn.Flatten(),
-            nn.LazyLinear(1024)
+            ResidualBlock(64, 64),
+            ResidualBlock(64, 64),
+            nn.AdaptiveAvgPool2d((8, 8)),
+            nn.Flatten(start_dim=-3),
+            nn.LazyLinear(128)
         )
+        self.RNN = nn.LSTM(128, 64, 2, batch_first=True, bidirectional=True)
+        self.Attention = nn.MultiheadAttention(128, 8, batch_first=True)
+
         self.classifier = nn.Sequential(
             nn.ReLU(),
             nn.LazyLinear(num_classes),
@@ -62,9 +69,16 @@ class CNN(nn.Module):
         return nn.functional.cross_entropy(y, target)
     
     def forward(self, mfcc_total, mfcc_partial):
-        x = self.MFCC_TOTAL2VECTOR(mfcc_total)
+        x = self.MFCC_TOTAL2VECTOR(mfcc_total).unsqueeze(1) # b, seq_len, feature
+        # mfcc_partial b,seq_len,channel,width,height
+        b,seq_len,channel,widht,height = mfcc_partial.size()
+        mfcc_partial = mfcc_partial.view(b*seq_len, channel, widht, height)
         x_partial = self.MFCC_PARTIAL2VECTOR(mfcc_partial)
-        x = torch.cat((x, x_partial), dim=-1)
+        x_partial = x_partial.view(b, seq_len, -1)
+        x_partial, _ = self.RNN(x_partial)
+        x, _ = self.Attention(x, x_partial, x_partial)
+        x = x.squeeze(1)
+
         return self.classifier(x) 
 
         

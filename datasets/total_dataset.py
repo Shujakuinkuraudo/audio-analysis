@@ -47,7 +47,7 @@ class emodb_dataset:
             if wave_form.shape[1] > self.sr * self.time:
                 wave_form = wave_form[:,:self.sr * self.time]
 
-            wave_form = wave_form.mean(dim=0)
+            wave_form = wave_form[0]
                 
             target = self.emodb_dict[data_path[index].split("/")[-1][5]]
             people = data_path[index].split("/")[-1][:2]
@@ -71,7 +71,7 @@ class emodb_dataset:
             if wave_form.shape[1] > self.sr * self.time:
                 wave_form = wave_form[:,:self.sr * self.time]
 
-            wave_form = wave_form.mean(dim=0)
+            wave_form = wave_form[0]
                 
             target = self.savee_dict[data_path[index].split("/")[-1].split("_")[1][:-6]]
             people = data_path[index].split("/")[-1][:2]
@@ -94,17 +94,20 @@ def split_dataset(dataset_people_dict, test_size=0.2):
 
         
 if __name__ == "__main__":
+    import wandb
     emodb = emodb_dataset()
     a,b = split_dataset(emodb.dataset_people_dict)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     train_loader = DataLoader(a, batch_size=16, shuffle=True)
-    test_loader = DataLoader(b, batch_size=32, shuffle=False)
-    print(len(a), len(b))
+    test_loader = DataLoader(b, batch_size=16, shuffle=False)
+    run = wandb.init(project='audio analysis', name=f"new - dl", reinit=True)
     from models.CNN import CNN
     model = CNN(num_classes=8).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = torch.optim.Adam(model.parameters())
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.9)
     
-    for _ in tqdm.tqdm(range(100)):
+    for _ in (tqdm_epoch := tqdm.tqdm(range(1000))):
+        model.train()
         losses = []
         for (zcr, energy, mfcc_total, max_val, fft, mfcc_partial), y in (tqdm_train := tqdm.tqdm(train_loader, total=len(train_loader), leave=False)):
             optimizer.zero_grad()
@@ -115,9 +118,25 @@ if __name__ == "__main__":
             output = model.forward(mfcc_total=mfcc_total, mfcc_partial=mfcc_partial)
             loss = model.loss_function(output, y)
             loss.backward()
+            optimizer.step()
             losses.append(loss.item())
             tqdm_train.set_description(f"loss: {sum(losses)/len(losses)}")
+        # for (zcr, energy, mfcc_total, max_val, fft, mfcc_partial), y in (tqdm_train := tqdm.tqdm(test_loader, total=len(test_loader), leave=False)):
+        #     optimizer.zero_grad()
+        #     mfcc_total = mfcc_total.to(device)
+        #     mfcc_partial = mfcc_partial.to(device)
+        #     y = y.to(device)
+            
+        #     output = model.forward(mfcc_total=mfcc_total, mfcc_partial=mfcc_partial)
+        #     loss = model.loss_function(output, y)
+        #     loss.backward()
+        #     optimizer.step()
+        #     losses.append(loss.item())
+        #     tqdm_train.set_description(f"loss: {sum(losses)/len(losses)}")
+        lr_scheduler.step()
         
+        model.eval()
+        acc = []
         for (zcr, energy, mfcc_total, max_val, fft, mfcc_partial), y in (tqdm_test := tqdm.tqdm(test_loader, total=len(test_loader), leave=False)):
             mfcc_total = mfcc_total.to(device)
             mfcc_partial = mfcc_partial.to(device)
@@ -125,7 +144,11 @@ if __name__ == "__main__":
 
             output = model.forward(mfcc_total=mfcc_total, mfcc_partial=mfcc_partial)
             pred = output.argmax(dim=-1)
-            tqdm_test.set_description(f"accuracy: {(pred == y).sum().item() / len(y)}")
+            acc.append((pred == y).sum().item() / len(y))
+            tqdm_test.set_description(f"accuracy: {sum(acc)/len(acc)}")
+        tqdm_epoch.set_description(f"accuracy: {sum(acc)/len(acc)}")
+        run.log({"total - emodb - loss": sum(losses)/len(losses), "total - emodb - accuracy": sum(acc)/len(acc), "epoch": _})
+
 
 
             
