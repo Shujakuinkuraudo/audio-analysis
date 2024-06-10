@@ -1,0 +1,8 @@
+version: "3"
+services:
+  frontend_audio:
+    image: nginx:latest
+    ports:
+      - "10000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html

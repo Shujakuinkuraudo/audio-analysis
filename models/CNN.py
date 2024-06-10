@@ -34,30 +34,28 @@ class CNN(nn.Module):
     def __init__(self, num_classes = 7):
         super(CNN, self).__init__()
         self.MFCC_TOTAL2VECTOR = nn.Sequential(
-            nn.Conv2d(1, 16, 3, padding="same"),
+            nn.LazyConv2d(128, (3,3), padding=1),
             nn.ReLU(),
-            nn.Conv2d(16, 32, 3, padding="same"),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, 3, padding="same"),
-            nn.ReLU(),
-            ResidualBlock(64, 64),
-            ResidualBlock(64, 64),
-            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.LazyBatchNorm2d(),
+            ResidualBlock(128, 128),
+            ResidualBlock(128, 128),
+            nn.AdaptiveAvgPool2d((64, 64)),
             nn.Flatten(),
             nn.LazyLinear(1024)
         )
         self.MFCC_PARTIAL2VECTOR = nn.Sequential(
-            nn.LazyConv2d(64, (3,3), padding="same"),
+            nn.LazyConv2d(128, (3,3), padding=1),
             nn.ReLU(),
-            nn.LazyConv2d(64, (3,3), padding="same"),
-            nn.ReLU(),
-            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.LazyBatchNorm2d(),
+            ResidualBlock(128, 128),
+            ResidualBlock(128, 128),
+            nn.AdaptiveAvgPool2d((64, 64)),
             nn.Flatten(),
-            nn.LazyLinear(512)
+            nn.LazyLinear(1024)
         )
         self.classifier = nn.Sequential(
             nn.ReLU(),
-            nn.Linear(1024, num_classes),
+            nn.LazyLinear(num_classes),
         )
 
     def loss_function(self, y, target):
@@ -65,9 +63,9 @@ class CNN(nn.Module):
     
     def forward(self, mfcc_total, mfcc_partial):
         x = self.MFCC_TOTAL2VECTOR(mfcc_total)
-        # x_partial = self.MFCC_PARTIAL2VECTOR(mfcc_partial)
-        # x = torch.cat((x_total, x_partial), dim=-1)
-        return (self.classifier(x), )
+        x_partial = self.MFCC_PARTIAL2VECTOR(mfcc_partial)
+        x = torch.cat((x, x_partial), dim=-1)
+        return self.classifier(x) 
 
         
 if __name__ == "__main__":
