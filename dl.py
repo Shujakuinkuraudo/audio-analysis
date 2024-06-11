@@ -45,6 +45,28 @@ for clf in clfs:
 
     try:
         tp = Train_process()
+
+        savee_fold, savee_labels = savee_fold_dl(
+            fold=4,
+            n_fft=config["n_fft"],
+            win_length=config["win_length"],
+            hop_length=config["hop_length"],
+            sr=22050,
+            feature_cache=feature_cahce
+        )
+        acc, max_acc = tp.test_fold(
+            savee_fold,
+            model_cls=clf,
+            optimizer_cls=optimizer,
+            labels=savee_labels,
+            device=device,
+            run=run,
+            epochs=args.epochs,
+            name="savee",
+        )
+        run.log({"savee - 4 - acc": acc, "savee - 4 - maxacc": max_acc})
+
+
         emodb_fold, emodb_labels = emodb_fold_dl(
             fold=5,
             n_fft=config["n_fft"],
@@ -64,26 +86,6 @@ for clf in clfs:
             name="emodb",
         )
         run.log({"emodb - 5 - acc": acc, "emodb - 5 - maxacc": max_acc})
-
-        savee_fold, savee_labels = savee_fold_dl(
-            fold=4,
-            n_fft=config["n_fft"],
-            win_length=config["win_length"],
-            hop_length=config["hop_length"],
-            sr=22050,
-            feature_cahce = feature_cahce
-        )
-        acc, max_acc = tp.test_fold(
-            savee_fold,
-            model_cls=clf,
-            optimizer_cls=optimizer,
-            labels=savee_labels,
-            device=device,
-            run=run,
-            epochs=args.epochs,
-            name="savee",
-        )
-        run.log({"savee - 4 - acc": acc, "savee - 4 - maxacc": max_acc})
 
     finally:
         run.finish()
