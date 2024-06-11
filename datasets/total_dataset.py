@@ -12,16 +12,16 @@ class emodb_dataset:
 
         self.dataset_people_dict = {}
 
-        # self.emodb_dict = {
-        #     "W" :0, # Anger
-        #     "L" :1,
-        #     "E" :2,
-        #     "A" :3,
-        #     "F" :4,
-        #     "T" :5,
-        #     "N" :6
-        # }
-        # self.dataset_people_dict["emodb"] = self.get_emodb_data(glob.glob(emodb_root+"/*.wav"))
+        self.emodb_dict = {
+            "W" :0, # Anger
+            "L" :1,
+            "E" :2,
+            "A" :3,
+            "F" :4,
+            "T" :5,
+            "N" :6
+        }
+        self.dataset_people_dict["emodb"] = self.get_emodb_data(glob.glob(emodb_root+"/*.wav"))
 
         self.savee_dict = {
             "a" : 0,
@@ -100,88 +100,86 @@ class emodb_dataset:
             data_people[people].append([get_feature(wave_form, sr), target])
         return data_people
 
-from sklearn.model_selection import train_test_split
-def split_dataset(dataset_people_dict, test_size=0.2):
+def split_dataset(dataset_people_dict, test_size=0.2, choose="emodb"):
     data = []
     for dataset in dataset_people_dict:
-        for people in dataset_people_dict[dataset]:
-            data += dataset_people_dict[dataset][people]
-    train_data, test_data = train_test_split(data, test_size=test_size, random_state=42)
-    return train_data, test_data
+        if dataset == choose:
+            for people in dataset_people_dict[dataset]:
+                data += dataset_people_dict[dataset][people]
+    return data
 
         
 if __name__ == "__main__":
     import wandb
     emodb = emodb_dataset()
-    a,b = split_dataset(emodb.dataset_people_dict)
     # import numpy as np
     # data = np.load("./SAVEE.npy",allow_pickle=True).item()
     # x_source = data["x"]
     # y_source = data["y"]
     # x_y = list(zip(x_source, y_source))
     # a,b = train_test_split(x_y, test_size=0.2, random_state=42)
+    from sklearn.model_selection import train_test_split, KFold
+    run = wandb.init(project='audio analysis', name=f"TIMNET - kfold", reinit=True)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    train_loader = DataLoader(a, batch_size=64, shuffle=True)
-    test_loader = DataLoader(b, batch_size=16, shuffle=False)
-    run = wandb.init(project='audio analysis', name=f"new - dl", reinit=True)
-    from models.CNN import CNN
-    model = CNN(num_classes=7).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), betas=(0.93, 0.98))
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.9)
-    
-    for _ in (tqdm_epoch := tqdm.tqdm(range(1000))):
-        model.train()
+    for dataset_name in ["emodb","savee"]:
+        data = split_dataset(emodb.dataset_people_dict, choose=dataset_name)
+        kf = KFold(n_splits=5, shuffle=True, random_state=42)
+        accs = []
         losses = []
-        for (zcr, energy, mfcc_total, max_val, fft, mfcc_partial), y in (tqdm_train := tqdm.tqdm(train_loader, total=len(train_loader), leave=False)):
-            optimizer.zero_grad()
-            mfcc_total = mfcc_total.to(device)
-            # mfcc_partial = mfcc_partial.to(device)
-            y = y.to(device)
-            # smooth_label
-            y = torch.nn.functional.one_hot(y, num_classes=7).float()
-            y = y * 0.9 + 0.1 / 7
+        for i,(train_index, test_index) in enumerate(kf.split(data)):
+            a = [data[i] for i in train_index]
+            b = [data[i] for i in test_index]
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            train_loader = DataLoader(a, batch_size=64, shuffle=True)
+            test_loader = DataLoader(b, batch_size=16, shuffle=False)
+            from models.CNN import CNN
+            model = CNN(num_classes=7).to(device)
+            optimizer = torch.optim.Adam(model.parameters(), betas=(0.93, 0.98))
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.9)
             
-            # output = model.forward(mfcc_total=mfcc_total, mfcc_partial=mfcc_partial)
-            output = model.forward(mfcc_total=mfcc_total, mfcc_partial=None)
-            loss = model.loss_function(output, y)
-            loss.backward()
-            optimizer.step()
-            losses.append(loss.item())
-            tqdm_train.set_description(f"loss: {sum(losses)/len(losses)}")
-        # for (zcr, energy, mfcc_total, max_val, fft, mfcc_partial), y in (tqdm_train := tqdm.tqdm(test_loader, total=len(train_loader), leave=False)):
-        #     optimizer.zero_grad()
-        #     mfcc_total = mfcc_total.to(device)
-        #     mfcc_partial = mfcc_partial.to(device)
-        #     y = y.to(device)
-            
-        #     output = model.forward(mfcc_total=mfcc_total, mfcc_partial=mfcc_partial)
-        #     loss = model.loss_function(output, y)
-        #     loss.backward()
-        #     optimizer.step()
-        #     losses.append(loss.item())
-        #     tqdm_train.set_description(f"loss: {sum(losses)/len(losses)}")
-        lr_scheduler.step()
+            for _ in (tqdm_epoch := tqdm.tqdm(range(1000))):
+                model.train()
+                losses = []
+                for (zcr, energy, mfcc_total, max_val, fft, mfcc_partial), y in (tqdm_train := tqdm.tqdm(train_loader, total=len(train_loader), leave=False)):
+                    optimizer.zero_grad()
+                    mfcc_total = mfcc_total.to(device)
+                    # mfcc_partial = mfcc_partial.to(device)
+                    y = y.to(device)
+                    # smooth_label
+                    y = torch.nn.functional.one_hot(y, num_classes=7).float()
+                    y = y * 0.9 + 0.1 / 7
+                    
+                    # output = model.forward(mfcc_total=mfcc_total, mfcc_partial=mfcc_partial)
+                    output = model.forward(mfcc_total=mfcc_total, mfcc_partial=None)
+                    loss = model.loss_function(output, y)
+                    loss.backward()
+                    optimizer.step()
+                    losses.append(loss.item())
+                    tqdm_train.set_description(f"loss: {sum(losses)/len(losses)}")
+                lr_scheduler.step()
+                
+                model.eval()
+                acc = []
+                for (zcr, energy, mfcc_total, max_val, fft, mfcc_partial), y in (tqdm_test := tqdm.tqdm(test_loader, total=len(test_loader), leave=False)):
+                    mfcc_total = mfcc_total.to(device)
+                    # mfcc_partial = mfcc_partial.to(device)
+                    y = y.to(device)
+
+                    output = model.forward(mfcc_total=mfcc_total, mfcc_partial=None)
+                    pred = output.argmax(dim=-1)
+                    # y = y.argmax(dim=-1)
+                    acc.append((pred == y).sum().item() / len(y))
+                    tqdm_test.set_description(f"accuracy: {sum(acc)/len(acc)}")
+                tqdm_epoch.set_description(f"accuracy: {sum(acc)/len(acc)}")
+                run.log({f"{dataset_name}_kfold_{i}_loss": sum(losses)/len(losses), f"{dataset_name}_kfold_{i}_acc": sum(acc)/len(acc), "epoch": _})
+            accs.append(sum(acc)/len(acc))
+            losses.append(sum(losses)/len(losses))
+        run.log({f"{dataset_name}_kfold_acc": sum(accs)/len(accs), f"{dataset_name}_kfold_loss": sum(losses)/len(losses)})
+
+
+
+                
+
+
         
-        model.eval()
-        acc = []
-        for (zcr, energy, mfcc_total, max_val, fft, mfcc_partial), y in (tqdm_test := tqdm.tqdm(test_loader, total=len(test_loader), leave=False)):
-            mfcc_total = mfcc_total.to(device)
-            # mfcc_partial = mfcc_partial.to(device)
-            y = y.to(device)
-
-            output = model.forward(mfcc_total=mfcc_total, mfcc_partial=None)
-            pred = output.argmax(dim=-1)
-            # y = y.argmax(dim=-1)
-            acc.append((pred == y).sum().item() / len(y))
-            tqdm_test.set_description(f"accuracy: {sum(acc)/len(acc)}")
-        tqdm_epoch.set_description(f"accuracy: {sum(acc)/len(acc)}")
-        run.log({"total -  loss": sum(losses)/len(losses), "total -  accuracy": sum(acc)/len(acc), "epoch": _})
-
-
-
-            
-
-
-    
-    
+        
