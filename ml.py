@@ -1,4 +1,3 @@
-
 import wandb
 from datasets.savee import savee_fold_ml
 from datasets.emodb import emodb_fold_ml
@@ -11,17 +10,24 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 
 
-clfs = [DecisionTreeClassifier(), KNeighborsClassifier(), SVC(), RandomForestClassifier(), XGBClassifier(), ]
-savee_fold, savee_labels = savee_fold_ml(fold = 4)
-emodb_fold, emodb_labels = emodb_fold_ml(fold = 5)
+clfs = [
+    DecisionTreeClassifier(),
+    KNeighborsClassifier(),
+    SVC(),
+    RandomForestClassifier(),
+    XGBClassifier(),
+]
+savee_fold, savee_labels = savee_fold_ml(fold=4)
+emodb_fold, emodb_labels = emodb_fold_ml(fold=5)
 
 config = {
-    "batch_size" : 80,
-    
+    "batch_size": 80,
 }
 
 for clf in clfs:
-    run = wandb.init(project='audio analysis', name=f"ml - {repr(clf)}", reinit=True, config=config)
+    run = wandb.init(
+        project="audio analysis", name=f"ml - {repr(clf)}", reinit=True, config=config
+    )
 
     try:
         tp = Train_process()
