@@ -9,15 +9,23 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB, MultinomialNB
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 
 
-clfs = [SVC(C=0.1,gamma="auto"), XGBClassifier(), DecisionTreeClassifier(), KNeighborsClassifier(), RandomForestClassifier()]
+
+
+
+
+clfs = [SVC(C=0.1,gamma="auto"), XGBClassifier(), DecisionTreeClassifier(), KNeighborsClassifier(), RandomForestClassifier(), LogisticRegression(), GaussianNB(), LinearDiscriminantAnalysis(), QuadraticDiscriminantAnalysis(), MultinomialNB()]
 feature_cache = {}
 emodb_fold, emodb_labels = emodb_fold_ml(fold = 5, feature_cache= feature_cache)
 savee_fold, savee_labels = savee_fold_ml(fold = 4, feature_cache= feature_cache)
 
 for clf in clfs:
-    run = wandb.init(project='audio analysis', name=f"kfold - all - {repr(clf)}", reinit=True)
+    run = wandb.init(project='audio analysis', name=f"kfold - different - {repr(clf)}", reinit=True)
 
     try:
         tp = Train_process()
