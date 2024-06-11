@@ -34,50 +34,58 @@ class ResidualBlock(nn.Module):
         return out
 
 
+from .TIMNET import TIMNET, WeightLayer
 class CNN(nn.Module):
     def __init__(self, num_classes = 7):
         super(CNN, self).__init__()
-        self.MFCC_TOTAL2VECTOR = nn.Sequential(
-            nn.LazyConv2d(64, (5,5), padding=2),
-            nn.ReLU(),
-            nn.LazyBatchNorm2d(),
-            ResidualBlock(64, 64),
-            ResidualBlock(64, 64),
-            nn.AdaptiveAvgPool2d((8, 8)),
-            nn.Flatten(),
-            nn.LazyLinear(128)
-        )
-        self.MFCC_PARTIAL2VECTOR = nn.Sequential(
-            nn.LazyConv2d(64, (5,5), padding=2),
-            nn.ReLU(),
-            nn.LazyBatchNorm2d(),
-            ResidualBlock(64, 64),
-            ResidualBlock(64, 64),
-            nn.AdaptiveAvgPool2d((8, 8)),
-            nn.Flatten(start_dim=-3),
-            nn.LazyLinear(128)
-        )
-        self.RNN = nn.LSTM(128, 64, 2, batch_first=True, bidirectional=True)
-        self.Attention = nn.MultiheadAttention(128, 8, batch_first=True)
+        # self.MFCC_TOTAL2VECTOR = nn.Sequential(
+        #     nn.LazyConv2d(64, (5,5), padding=2),
+        #     nn.ReLU(),
+        #     nn.LazyBatchNorm2d(),
+        #     ResidualBlock(64, 64),
+        #     ResidualBlock(64, 64),
+        #     nn.AdaptiveAvgPool2d((8, 8)),
+        #     nn.Flatten(),
+        #     nn.LazyLinear(128)
+        # )
+        # self.MFCC_PARTIAL2VECTOR = nn.Sequential(
+        #     nn.LazyConv2d(64, (5,5), padding=2),
+        #     nn.ReLU(),
+        #     nn.LazyBatchNorm2d(),
+        #     ResidualBlock(64, 64),
+        #     ResidualBlock(64, 64),
+        #     nn.AdaptiveAvgPool2d((8, 8)),
+        #     nn.Flatten(start_dim=-3),
+        #     nn.LazyLinear(128)
+        # )
+        # self.RNN = nn.LSTM(128, 64, 2, batch_first=True, bidirectional=True)
+        # self.Attention = nn.MultiheadAttention(128, 8, batch_first=True)
 
+        # self.classifier = nn.Sequential(
+        #     nn.ReLU(),
+        #     nn.LazyLinear(num_classes),
+        # )
+        self.TIMNET = TIMNET(nb_filters=39, kernel_size=2, nb_stacks=1, dilations=None, activation="relu", dropout_rate=0.1, return_sequences=True)
+        self.WEIGHTLAYER = WeightLayer()
         self.classifier = nn.Sequential(
-            nn.ReLU(),
             nn.LazyLinear(num_classes),
         )
 
     def loss_function(self, y, target):
         return nn.functional.cross_entropy(y, target)
     
-    def forward(self, mfcc_total, mfcc_partial):
-        x = self.MFCC_TOTAL2VECTOR(mfcc_total).unsqueeze(1) # b, seq_len, feature
+    def forward(self, mfcc_total, mfcc_partial=None):
+        # x = self.MFCC_TOTAL2VECTOR(mfcc_total).unsqueeze(1) # b, seq_len, feature
         # mfcc_partial b,seq_len,channel,width,height
-        b,seq_len,channel,widht,height = mfcc_partial.size()
-        mfcc_partial = mfcc_partial.view(b*seq_len, channel, widht, height)
-        x_partial = self.MFCC_PARTIAL2VECTOR(mfcc_partial)
-        x_partial = x_partial.view(b, seq_len, -1)
-        x_partial, _ = self.RNN(x_partial)
-        x, _ = self.Attention(x, x_partial, x_partial)
-        x = x.squeeze(1)
+        # b,seq_len,channel,widht,height = mfcc_partial.size()
+        # mfcc_partial = mfcc_partial.view(b*seq_len, channel, widht, height)
+        # x_partial = self.MFCC_PARTIAL2VECTOR(mfcc_partial)
+        # x_partial = x_partial.view(b, seq_len, -1)
+        # x_partial, _ = self.RNN(x_partial)
+        # x, _ = self.Attention(x, x_partial, x_partial)
+        # x = x.squeeze(1)
+        x = self.TIMNET(mfcc_total)
+        x = self.WEIGHTLAYER(x)
 
         return self.classifier(x) 
 
