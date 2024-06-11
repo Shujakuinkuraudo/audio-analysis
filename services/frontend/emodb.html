@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<script src="https://unpkg.com/wavesurfer.js@7"></script>
+<script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/record.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>Audio Recording App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+
+        button{
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        select {
+            padding: 10px;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        input[type="file"] {
+            padding: 20px;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+
+
+    </style>
+</head>
+
+<body>
+    <h1> 情感分析 </h1>
+    <div class="upload-section">
+        <input type="file" id="file-upload" accept="audio/*">
+        <button id="upload-file">Upload File</button>
+    </div>
+
+    <button id="record">Record</button>
+    <button id="pause" style="display: none;">Pause</button>
+    
+
+    <select id="mic-select">
+        <option value="" hidden>Select mic</option>
+    </select>
+    <label style="display:inline-block;"><input type="checkbox" /> Scrolling waveform</label>
+    <p id="progress">00:00</p>
+
+    <div id="mic" style="border: 1px solid #ddd; border-radius: 4px; margin-top: 1rem"></div>
+
+
+    <div id="result"></div>
+    <div style="width: 30%; height: 30%; align-items: center; margin: 1rem auto" id="chartReport">
+        <canvas id="myPieChart" ></canvas>
+    </div>
+
+
+    <div id="recordings" style="margin: 1rem 0"></div>
+
+    <script>
+        const resultDiv = document.getElementById('result')
+        let wavesurfer, record
+        let scrollingWaveform = false
+
+        const createWaveSurfer = () => {
+            // Create an instance of WaveSurfer
+            if (wavesurfer) {
+                wavesurfer.destroy()
+            }
+            wavesurfer = WaveSurfer.create({
+                container: '#mic',
+                waveColor: 'rgb(200, 0, 200)',
+                progressColor: 'rgb(100, 0, 100)',
+            })
+
+            // Initialize the Record plugin
+            record = wavesurfer.registerPlugin(WaveSurfer.Record.create({ scrollingWaveform, renderRecordedAudio: false }))
+            // Render recorded audio
+            record.on('record-end', (blob) => {
+                const container = document.querySelector('#recordings')
+                const recordedUrl = URL.createObjectURL(blob)
+                const formData = new FormData();
+                formData.append('audio', blob, 'recording.mp3');
+
+
+                try {
+                    const uploadData = async () => {
+                        const response = await fetch('http://223.2.26.106:1234/upload_emodb', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const result = await response.json();
+                        //console.log(result);
+                        resultDiv.textContent = JSON.stringify(result);
+                        drawPieChart(result);
+                    };
+
+                    uploadData();
+                } catch (error) {
+                    resultDiv.textContent = 'Error: ' + error.message;
+                }
+
+                // Create wavesurfer from the recorded audio
+                const wavesurfer = WaveSurfer.create({
+                    container,
+                    waveColor: 'rgb(200, 100, 0)',
+                    progressColor: 'rgb(100, 50, 0)',
+                    url: recordedUrl,
+                })
+
+                // Play button
+                const button = container.appendChild(document.createElement('button'))
+                button.textContent = 'Play'
+                button.onclick = () => wavesurfer.playPause()
+                wavesurfer.on('pause', () => (button.textContent = 'Play'))
+                wavesurfer.on('play', () => (button.textContent = 'Pause'))
+
+                // Download link
+                const link = container.appendChild(document.createElement('a'))
+                Object.assign(link, {
+                    href: recordedUrl,
+                    download: 'recording.' + blob.type.split(';')[0].split('/')[1] || 'webm',
+                    textContent: 'Download recording',
+                })
+
+
+
+            })
+            pauseButton.style.display = 'none'
+            recButton.textContent = 'Record'
+
+            record.on('record-progress', (time) => {
+                updateProgress(time)
+            })
+        }
+
+        const progress = document.querySelector('#progress')
+        const updateProgress = (time) => {
+            // time will be in milliseconds, convert it to mm:ss format
+            const formattedTime = [
+                Math.floor((time % 3600000) / 60000), // minutes
+                Math.floor((time % 60000) / 1000), // seconds
+            ]
+                .map((v) => (v < 10 ? '0' + v : v))
+                .join(':')
+            progress.textContent = formattedTime
+        }
+
+        const pauseButton = document.querySelector('#pause')
+        pauseButton.onclick = () => {
+            if (record.isPaused()) {
+                record.resumeRecording()
+                pauseButton.textContent = 'Pause'
+                return
+            }
+
+            record.pauseRecording()
+            pauseButton.textContent = 'Resume'
+        }
+
+        const micSelect = document.querySelector('#mic-select')
+        {
+            // Mic selection
+            WaveSurfer.Record.getAvailableAudioDevices().then((devices) => {
+                devices.forEach((device) => {
+                    const option = document.createElement('option')
+                    option.value = device.deviceId
+                    option.text = device.label || device.deviceId
+                    micSelect.appendChild(option)
+                })
+            })
+        }
+        // Record button
+        const recButton = document.querySelector('#record')
+
+        recButton.onclick = () => {
+            if (record.isRecording() || record.isPaused()) {
+                record.stopRecording()
+                recButton.textContent = 'Record'
+                pauseButton.style.display = 'none'
+                return
+            }
+
+            recButton.disabled = true
+
+            // reset the wavesurfer instance
+
+            // get selected device
+            const deviceId = micSelect.value
+            record.startRecording({ deviceId }).then(() => {
+                recButton.textContent = 'Stop'
+                recButton.disabled = false
+                pauseButton.style.display = 'inline'
+            })
+        }
+        document.querySelector('input[type="checkbox"]').onclick = (e) => {
+            scrollingWaveform = e.target.checked
+            createWaveSurfer()
+        }
+
+        createWaveSurfer()
+
+        const uploadFileButton = document.getElementById('upload-file')
+        const fileInput = document.getElementById('file-upload')
+
+        uploadFileButton.onclick = async () => {
+            const file = fileInput.files[0]
+            if (!file) {
+                resultDiv.textContent = 'Please select a file to upload.'
+                return
+            }
+            const formData = new FormData()
+            formData.append('audio', file, file.name)
+
+            try {
+                const response = await fetch('http://223.2.26.106:1234/upload_emodb', {
+                    method: 'POST',
+                    body: formData
+                })
+
+                const result = await response.json();
+                resultDiv.textContent = JSON.stringify(result);
+                drawPieChart(result);
+            } catch (error) {
+                resultDiv.textContent = 'Error: ' + error.message
+            }
+        }
+        const drawPieChart = (data) => {
+            document.querySelector("#chartReport").innerHTML = '<canvas id="myPieChart"></canvas>';
+            const ctx = document.getElementById('myPieChart').getContext('2d')
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Anger', 'Bordem','Disgust','Anxiety','Happiness','Sadness','Netural'],
+                    datasets: [{
+                        data: [data.id_0, data.id_1, data.id_2, data.id_3, data.id_4, data.id_5, data.id_6],
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#FF6384', '#36A2EB', '#FFCE56', '#FF6384']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    return `${label}: ${value}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+        }
+
+    </script>
+</body>
+
+</html>

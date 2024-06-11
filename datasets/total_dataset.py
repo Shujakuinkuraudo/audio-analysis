@@ -30,7 +30,7 @@ class emodb_dataset:
             "h" : 4,
             "n" : 6,
             "sa": 5,
-            "su": 1
+            "su": 7
         }
         self.dataset_people_dict["savee"] = self.get_savee_data(glob.glob(savee_root+"/*.wav"))
     
@@ -54,6 +54,9 @@ class emodb_dataset:
                         torch.zeros(1, self.sr * self.time-(wave_form.shape[1]//2 + (wave_form.shape[1]%2))), wave_form
                         )
                     , dim=1)
+            if wave_form.shape[1] > self.sr * self.time:
+                pad_len = wave_form.shape[1] - self.sr * self.time
+                wave_form = wave_form[:,pad_len//2:pad_len//2 + self.sr * self.time]
 
             wave_form = wave_form[0]
                 
@@ -103,7 +106,7 @@ class emodb_dataset:
 def split_dataset(dataset_people_dict, test_size=0.2, choose="emodb"):
     data = []
     for dataset in dataset_people_dict:
-        if dataset == choose:
+        if choose == "all" or dataset == choose:
             for people in dataset_people_dict[dataset]:
                 data += dataset_people_dict[dataset][people]
     return data
@@ -121,23 +124,22 @@ if __name__ == "__main__":
     from sklearn.model_selection import train_test_split, KFold
     run = wandb.init(project='audio analysis', name=f"TIMNET - kfold", reinit=True)
 
-    for dataset_name in ["emodb","savee"]:
+    for dataset_name in ["all"]:
         data = split_dataset(emodb.dataset_people_dict, choose=dataset_name)
-        kf = KFold(n_splits=5, shuffle=True, random_state=42)
         accs = []
         losses = []
-        for i,(train_index, test_index) in enumerate(kf.split(data)):
+        for i,(train_index, test_index) in enumerate([[range(len(data)),range(len(data))]]):
             a = [data[i] for i in train_index]
             b = [data[i] for i in test_index]
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             train_loader = DataLoader(a, batch_size=64, shuffle=True)
             test_loader = DataLoader(b, batch_size=16, shuffle=False)
             from models.CNN import CNN
-            model = CNN(num_classes=7).to(device)
+            model = CNN(num_classes=8).to(device)
             optimizer = torch.optim.Adam(model.parameters(), betas=(0.93, 0.98))
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.9)
             
-            for _ in (tqdm_epoch := tqdm.tqdm(range(1000))):
+            for _ in (tqdm_epoch := tqdm.tqdm(range(200))):
                 model.train()
                 losses = []
                 for (zcr, energy, mfcc_total, max_val, fft, mfcc_partial), y in (tqdm_train := tqdm.tqdm(train_loader, total=len(train_loader), leave=False)):
@@ -146,8 +148,8 @@ if __name__ == "__main__":
                     # mfcc_partial = mfcc_partial.to(device)
                     y = y.to(device)
                     # smooth_label
-                    y = torch.nn.functional.one_hot(y, num_classes=7).float()
-                    y = y * 0.9 + 0.1 / 7
+                    y = torch.nn.functional.one_hot(y, num_classes=8).float()
+                    y = y * 0.9 + 0.1 / 8
                     
                     # output = model.forward(mfcc_total=mfcc_total, mfcc_partial=mfcc_partial)
                     output = model.forward(mfcc_total=mfcc_total, mfcc_partial=None)
@@ -171,10 +173,9 @@ if __name__ == "__main__":
                     acc.append((pred == y).sum().item() / len(y))
                     tqdm_test.set_description(f"accuracy: {sum(acc)/len(acc)}")
                 tqdm_epoch.set_description(f"accuracy: {sum(acc)/len(acc)}")
-                run.log({f"{dataset_name}_kfold_{i}_loss": sum(losses)/len(losses), f"{dataset_name}_kfold_{i}_acc": sum(acc)/len(acc), "epoch": _})
             accs.append(sum(acc)/len(acc))
             losses.append(sum(losses)/len(losses))
-        run.log({f"{dataset_name}_kfold_acc": sum(accs)/len(accs), f"{dataset_name}_kfold_loss": sum(losses)/len(losses)})
+        torch.save(model.state_dict(), f"TIM_NET_{dataset_name}.pt")
 
 
 
