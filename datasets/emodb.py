@@ -54,12 +54,24 @@ class emodb_dataset(Dataset, dataset):
                 wave_form = torch.cat(
                     (
                         wave_form,
-                        torch.zeros(1, self.sr * self.time - wave_form.shape[1]),
+                        torch.zeros(1, self.sr * self.time - (wave_form.shape[1] // 2)),
+                    ),
+                    dim=1,
+                )
+                wave_form = torch.cat(
+                    (
+                        torch.zeros(
+                            1,
+                            self.sr * self.time
+                            - (wave_form.shape[1] // 2 + wave_form.shape[1] % 2),
+                        ),
+                        wave_form,
                     ),
                     dim=1,
                 )
             if wave_form.shape[1] > self.sr * self.time:
-                wave_form = wave_form[:, : self.sr * self.time]
+                pad_len = wave_form.shape[1] - self.sr * self.time
+                wave_form = wave_form[:, pad_len//2:pad_len//2 + self.sr * self.time]
 
             wave_form = wave_form.mean(dim=0)
 

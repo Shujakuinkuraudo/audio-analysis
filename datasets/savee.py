@@ -52,7 +52,7 @@ class savee_dataset(Dataset, dataset):
                         torch.zeros(
                             1,
                             self.sr * self.time
-                            - (wave_form.shape[1] // 2 + wave_form[1] % 2),
+                            - (wave_form.shape[1] // 2 + wave_form.shape[1] % 2),
                         ),
                         wave_form,
                     ),
