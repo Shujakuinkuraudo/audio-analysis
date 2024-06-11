@@ -51,7 +51,7 @@ for clf in clfs:
             win_length=config["win_length"],
             hop_length=config["hop_length"],
             sr=22050,
-            feature_cahce = feature_cahce
+            feature_cache=feature_cahce
         )
         acc, max_acc = tp.test_fold(
             emodb_fold,
