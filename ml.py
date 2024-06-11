@@ -11,10 +11,10 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 
 
-clfs = [SVC(C=0.1,gamma="auto")]
+clfs = [SVC(C=0.1,gamma="auto"), XGBClassifier(), DecisionTreeClassifier(), KNeighborsClassifier(), RandomForestClassifier()]
 
 for clf in clfs:
-    run = wandb.init(project='audio analysis', name=f"ml - {repr(clf)}", reinit=True)
+    run = wandb.init(project='audio analysis', name=f"kfold - all - {repr(clf)}", reinit=True)
     feature_cache = {}
 
     try:
