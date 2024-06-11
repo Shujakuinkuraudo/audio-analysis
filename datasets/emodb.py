@@ -20,12 +20,14 @@ class emodb_dataset(Dataset, dataset):
         n_fft=400,
         win_length=200,
         hop_length=100,
+        feature_cache = {}
     ):
         self.sr = sr
         self.emo_dict = {self.emotions[i]: i for i in range(len(self.emotions))}
         self.train = train
         self.people_id = ["03", "08", "09", "10", "11", "12", "13", "14", "15", "16"]
         self.time = 4
+        self.feature_cache = feature_cache
 
         self.data_path = self.preprocess(
             glob.glob(root + "/*.wav"), [self.people_id[i] for i in leave_out_people_id]
@@ -45,38 +47,42 @@ class emodb_dataset(Dataset, dataset):
     def get_data(self):
         data = []
         for index in range(len(self)):
-            wave_form, sr = torchaudio.load(self.data_path[index], format="wav")
-            if sr != self.sr:
-                wave_form = torchaudio.transforms.Resample(sr, self.sr)(wave_form)
-                sr = self.sr
-
-            if wave_form.shape[1] < self.sr * self.time:
-                wave_form = torch.cat(
-                    (
-                        wave_form,
-                        torch.zeros(1, self.sr * self.time - (wave_form.shape[1] // 2)),
-                    ),
-                    dim=1,
-                )
-                wave_form = torch.cat(
-                    (
-                        torch.zeros(
-                            1,
-                            self.sr * self.time
-                            - (wave_form.shape[1] // 2 + wave_form.shape[1] % 2),
-                        ),
-                        wave_form,
-                    ),
-                    dim=1,
-                )
-            if wave_form.shape[1] > self.sr * self.time:
-                pad_len = wave_form.shape[1] - self.sr * self.time
-                wave_form = wave_form[:, pad_len//2:pad_len//2 + self.sr * self.time]
-
-            wave_form = wave_form.mean(dim=0)
-
             target = self.emo_dict[self.data_path[index].split("/")[-1][5]]
-            data.append([*self.get_feature(wave_form, sr), target])
+            if self.data_path[index] in self.feature_cache:
+                feature = self.feature_cache[self.data_path[index]]
+            else:
+                wave_form, sr = torchaudio.load(self.data_path[index], format="wav")
+                if sr != self.sr:
+                    wave_form = torchaudio.transforms.Resample(sr, self.sr)(wave_form)
+                    sr = self.sr
+
+                if wave_form.shape[1] < self.sr * self.time:
+                    wave_form = torch.cat(
+                        (
+                            wave_form,
+                            torch.zeros(1, self.sr * self.time - (wave_form.shape[1] // 2)),
+                        ),
+                        dim=1,
+                    )
+                    wave_form = torch.cat(
+                        (
+                            torch.zeros(
+                                1,
+                                self.sr * self.time
+                                - (wave_form.shape[1] // 2 + wave_form.shape[1] % 2),
+                            ),
+                            wave_form,
+                        ),
+                        dim=1,
+                    )
+                if wave_form.shape[1] > self.sr * self.time:
+                    pad_len = wave_form.shape[1] - self.sr * self.time
+                    wave_form = wave_form[:, pad_len//2:pad_len//2 + self.sr * self.time]
+
+                wave_form = wave_form.mean(dim=0)
+                feature = self.get_feature(wave_form, sr)
+                self.feature_cache[self.data_path[index]] = feature
+            data.append([feature, target])
         return data
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor]:
@@ -105,6 +111,7 @@ def emodb_fold_dl(
     win_length=200,
     hop_length=100,
     n_fft=400,
+    feature_cache = {}
 ):
     each_peole = 10 // fold
     leave_out_peole = [
@@ -121,6 +128,7 @@ def emodb_fold_dl(
                 win_length=win_length,
                 hop_length=hop_length,
                 n_fft=n_fft,
+                feature_cache = feature_cache
             ),
             emodb_dataset(
                 root,
@@ -130,6 +138,7 @@ def emodb_fold_dl(
                 win_length=win_length,
                 hop_length=hop_length,
                 n_fft=n_fft,
+                feature_cache = feature_cache
             ),
         ]
         for i in range(fold)

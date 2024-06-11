@@ -41,6 +41,7 @@ for clf in clfs:
     )
 
     optimizer = eval(run.config["optimizer"])
+    feature_cahce = {}
 
     try:
         tp = Train_process()
@@ -50,6 +51,7 @@ for clf in clfs:
             win_length=config["win_length"],
             hop_length=config["hop_length"],
             sr=22050,
+            feature_cahce = feature_cahce
         )
         acc, max_acc = tp.test_fold(
             emodb_fold,
@@ -69,6 +71,7 @@ for clf in clfs:
             win_length=config["win_length"],
             hop_length=config["hop_length"],
             sr=22050,
+            feature_cahce = feature_cahce
         )
         acc, max_acc = tp.test_fold(
             savee_fold,
