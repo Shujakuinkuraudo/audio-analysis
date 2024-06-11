@@ -67,13 +67,13 @@ class Train_process:
             for epoch in (epoch_tq := tqdm.tqdm(range(epochs))):
                 model.train()
                 for (
-                    zcr,
+                    (zcr,
                     energy,
                     mfcc,
                     max_val,
                     fft,
                     mfcc_partial,
-                    target,
+                    ), target,
                 ) in train_dataloader:
                     mfcc, mfcc_partial = mfcc.to(device), mfcc_partial.to(device)
                     target = target.to(device)
@@ -95,13 +95,13 @@ class Train_process:
                 outputs = []
                 targets = []
                 for (
-                    zcr,
+                    (zcr,
                     energy,
                     mfcc,
                     max_val,
                     fft,
                     mfcc_partial,
-                    target,
+                    ), target,
                 ) in test_dataloader:
                     mfcc, mfcc_partial = mfcc.to(device), mfcc_partial.to(device)
                     target = target.to(device)
