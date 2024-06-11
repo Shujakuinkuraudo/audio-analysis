@@ -22,15 +22,21 @@ class Train_process:
         
     def test_fold(self, fold , clf, labels):
         acc = 0
+        accs = []
         for i, (train, test) in (tq := tqdm.tqdm(enumerate(fold), total= len(fold))):
             train_datas, train_targets = train
             test_datas, test_targets = test
+            from sklearn.preprocessing import StandardScaler
+            # train_scaler = StandardScaler()
+            # train_datas = train_scaler.fit_transform(train_datas)
+            # test_datas = train_scaler.transform(test_datas)
             clf.fit(train_datas, train_targets)
             now_acc = accuracy_score(clf.predict(test_datas), test_targets)
             acc += now_acc
+            accs.append(now_acc)
             print(classification_report(clf.predict(test_datas), test_targets, target_names=labels))
             tq.set_description(f"Fold {i} accuracy: {now_acc}")
-        return acc / len(fold)
+        return acc / len(fold), accs
 
 if __name__ == "__main__":
     clf = XGBClassifier()

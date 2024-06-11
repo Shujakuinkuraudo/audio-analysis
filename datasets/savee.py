@@ -6,32 +6,60 @@ from typing import List,Literal, Tuple
 import glob
 class savee_dataset(Dataset):
     emotions = ["a", "d", "f", "h", "n", "sa", "su"]
-    def __init__(self, root: str = "data/savee", train=True, leave_out_people_id: List[int] = [], sr = 16000):
+    def __init__(self, root: str = "data/savee", train=True, leave_out_people_id: List[int] = [], sr = 16000, feature_cache = {}):
         self.sr = sr
         self.emo_dict = {self.emotions[i]:i for i in range(len(self.emotions))}
         self.train = train
         self.people_id = ["DC", "JE", "JK", "KL"]
+        self.feature_cache = feature_cache
 
         self.data_path = self.preprocess(glob.glob(root+"/*.wav"), [self.people_id[i] for i in leave_out_people_id])
         self.mfcc_transform = torchaudio.transforms.MFCC(n_mfcc=13, melkwargs={"n_fft": 400,"win_length":400, "hop_length": 200, "n_mels": 23}, sample_rate=sr)
         
         
     def __getitem__(self, index: int) -> Tuple[torch.Tensor]:
-        wave_form, sr = torchaudio.load(self.data_path[index], format="wav")
-        if sr != self.sr:
-            wave_form = torchaudio.transforms.Resample(sr, self.sr)(wave_form)
-            sr = self.sr
+        # wave_form, sr = torchaudio.load(self.data_path[index], format="wav")
+        # if sr != self.sr:
+        #     wave_form = torchaudio.transforms.Resample(sr, self.sr)(wave_form)
+        #     sr = self.sr
             
-        if wave_form.shape[1] < 40000:
-            wave_form = torch.cat((wave_form, torch.zeros(1, 40000-wave_form.shape[1])), dim=1)
-        if wave_form.shape[1] > 40000:
-            wave_form = wave_form[:,:40000]
+        # if wave_form.shape[1] < 40000:
+        #     wave_form = torch.cat((wave_form, torch.zeros(1, 40000-wave_form.shape[1])), dim=1)
+        # if wave_form.shape[1] > 40000:
+        #     wave_form = wave_form[:,:40000]
 
-        wave_form = wave_form.mean(dim=0)
+        # wave_form = wave_form.mean(dim=0)
         
             
         target = self.emo_dict[self.data_path[index].split("/")[-1].split("_")[1][:-6]]
-        return *self.get_feature(wave_form, sr), target
+        if self.data_path[index] in self.feature_cache:
+            return self.feature_cache[self.data_path[index]], target
+        else:
+            feture = self.extract_features(self.data_path[index])
+            self.feature_cache[self.data_path[index]] = feture
+            return feture, target
+
+    def extract_features(self,file_path):
+        import librosa
+        import numpy as np
+        audio, sr = librosa.load(file_path, res_type='kaiser_fast')
+        mfccs = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=13)
+        mfccs_mean = np.mean(mfccs.T, axis=0)
+        pitches, magnitudes = librosa.core.piptrack(y=audio, sr=sr)
+        pitch = np.max(pitches)
+        rms = librosa.feature.rms(y=audio)
+        volume = np.mean(rms)
+        mfccs_high = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=40)
+        timbre = np.mean(mfccs_high.T, axis=0)
+        spectral_centroid = np.mean(librosa.feature.spectral_centroid(y=audio, sr=sr).T, axis=0)
+        spectral_bandwidth = np.mean(librosa.feature.spectral_bandwidth(y=audio, sr=sr).T, axis=0)
+        spectral_contrast = np.mean(librosa.feature.spectral_contrast(y=audio, sr=sr).T, axis=0)
+        chroma_stft = np.mean(librosa.feature.chroma_stft(y=audio, sr=sr).T, axis=0)
+        speech_frames = np.sum(librosa.effects.split(audio, top_db=20))
+        total_frames = len(audio)
+        rate_of_speech = speech_frames / total_frames
+        features = np.hstack((mfccs_mean, pitch, volume, timbre, spectral_centroid, spectral_bandwidth, spectral_contrast, chroma_stft, rate_of_speech))
+        return features
     
     def get_feature(self, wave_form:torch.Tensor, sr) -> Tuple[torch.Tensor]:
         frames = wave_form.unfold(0, 400, 200)
@@ -63,10 +91,15 @@ class savee_dataset(Dataset):
         datas = []
         targets = []
 
-        for zcr, energy, mfcc, max_val, fft, target in tqdm.tqdm(self):
-            datas.append(torch.cat([zcr, energy, max_val, fft.view(-1)], dim=0))
+        for features,target in tqdm.tqdm(self):
+            datas.append(features)
             targets.append(target)
         return datas, targets
+
+        # for zcr, energy, mfcc, max_val, fft, target in tqdm.tqdm(self):
+        #     datas.append(torch.cat([zcr, energy, max_val, fft.view(-1)], dim=0))
+        #     targets.append(target)
+        # return datas, targets
 
         
 def savee_fold_dl(root: str= "data/savee", fold: int = 5, sr = 16000):
@@ -74,10 +107,10 @@ def savee_fold_dl(root: str= "data/savee", fold: int = 5, sr = 16000):
     leave_out_peole = [[j + i for i in range(each_peole)] for j in range(0, 4 - each_peole + 1, each_peole)]
     return [[savee_dataset(root, train=True, leave_out_people_id=leave_out_peole[i], sr=sr),savee_dataset(root, train=False, leave_out_people_id=leave_out_peole[i], sr=sr)] for i in range(fold)]
 
-def savee_fold_ml(root: str= "data/savee", fold: int = 5, sr = 16000):
+def savee_fold_ml(root: str= "data/savee", fold: int = 5, sr = 16000, feature_cache={}):
     each_peole = 4 // fold
     leave_out_peole = [[j + i for i in range(each_peole)] for j in range(0, 4 - each_peole + 1, each_peole)]
-    return [[savee_dataset(root, train=True, leave_out_people_id=leave_out_peole[i], sr=sr).get_feature_data(),savee_dataset(root, train=False, leave_out_people_id=leave_out_peole[i], sr=sr).get_feature_data()] for i in range(fold)], savee_dataset.emotions
+    return [[savee_dataset(root, train=True, leave_out_people_id=leave_out_peole[i], sr=sr, feature_cache=feature_cache).get_feature_data(),savee_dataset(root, train=False, leave_out_people_id=leave_out_peole[i], sr=sr,feature_cache=feature_cache).get_feature_data()] for i in range(fold)], savee_dataset.emotions
 
 
         
