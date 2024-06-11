@@ -33,20 +33,6 @@ config = {
     "n_fft": 400,
 }
 
-savee_fold, savee_labels = savee_fold_dl(
-    fold=4,
-    n_fft=config["n_fft"],
-    win_length=config["win_length"],
-    hop_length=config["hop_length"],
-    sr=22050,
-)
-emodb_fold, emodb_labels = emodb_fold_dl(
-    fold=5,
-    n_fft=config["n_fft"],
-    win_length=config["win_length"],
-    hop_length=config["hop_length"],
-    sr=22050,
-)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 for clf in clfs:
@@ -58,11 +44,18 @@ for clf in clfs:
 
     try:
         tp = Train_process()
+        emodb_fold, emodb_labels = emodb_fold_dl(
+            fold=5,
+            n_fft=config["n_fft"],
+            win_length=config["win_length"],
+            hop_length=config["hop_length"],
+            sr=22050,
+        )
         acc, max_acc = tp.test_fold(
             emodb_fold,
             model_cls=clf,
             optimizer_cls=optimizer,
-            labels=savee_labels,
+            labels=emodb_labels,
             device=device,
             run=run,
             epochs=args.epochs,
@@ -70,6 +63,13 @@ for clf in clfs:
         )
         run.log({"emodb - 5 - acc": acc, "emodb - 5 - maxacc": max_acc})
 
+        savee_fold, savee_labels = savee_fold_dl(
+            fold=4,
+            n_fft=config["n_fft"],
+            win_length=config["win_length"],
+            hop_length=config["hop_length"],
+            sr=22050,
+        )
         acc, max_acc = tp.test_fold(
             savee_fold,
             model_cls=clf,
