@@ -119,7 +119,7 @@ if __name__ == "__main__":
     # x_y = list(zip(x_source, y_source))
     # a,b = train_test_split(x_y, test_size=0.2, random_state=42)
     from sklearn.model_selection import train_test_split, KFold
-    run = wandb.init(project='audio analysis', name=f"TIMNET - kfold", reinit=True)
+    run = wandb.init(project='audio analysis', name=f"kfold - all - CNN", reinit=True)
 
     for dataset_name in ["emodb","savee"]:
         data = split_dataset(emodb.dataset_people_dict, choose=dataset_name)
