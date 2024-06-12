@@ -18,58 +18,15 @@ class savee_dataset(Dataset):
         
         
     def __getitem__(self, index: int) -> Tuple[torch.Tensor]:
-        # wave_form, sr = torchaudio.load(self.data_path[index], format="wav")
-        # if sr != self.sr:
-        #     wave_form = torchaudio.transforms.Resample(sr, self.sr)(wave_form)
-        #     sr = self.sr
-            
-        # if wave_form.shape[1] < 40000:
-        #     wave_form = torch.cat((wave_form, torch.zeros(1, 40000-wave_form.shape[1])), dim=1)
-        # if wave_form.shape[1] > 40000:
-        #     wave_form = wave_form[:,:40000]
-
-        # wave_form = wave_form.mean(dim=0)
-        
+        from .get_feature import extract_features
             
         target = self.emo_dict[self.data_path[index].split("/")[-1].split("_")[1][:-6]]
         if self.data_path[index] in self.feature_cache:
             return self.feature_cache[self.data_path[index]], target
         else:
-            feture = self.extract_features(self.data_path[index])
+            feture = extract_features(self.data_path[index])
             self.feature_cache[self.data_path[index]] = feture
             return feture, target
-
-    def extract_features(self,file_path):
-        import librosa
-        import numpy as np
-        audio, sr = librosa.load(file_path, res_type='kaiser_fast')
-        mfccs = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=13)
-        mfccs_mean = np.mean(mfccs.T, axis=0)
-        pitches, magnitudes = librosa.core.piptrack(y=audio, sr=sr)
-        pitch = np.max(pitches)
-        rms = librosa.feature.rms(y=audio)
-        volume = np.mean(rms)
-        mfccs_high = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=40)
-        timbre = np.mean(mfccs_high.T, axis=0)
-        spectral_centroid = np.mean(librosa.feature.spectral_centroid(y=audio, sr=sr).T, axis=0)
-        spectral_bandwidth = np.mean(librosa.feature.spectral_bandwidth(y=audio, sr=sr).T, axis=0)
-        spectral_contrast = np.mean(librosa.feature.spectral_contrast(y=audio, sr=sr).T, axis=0)
-        chroma_stft = np.mean(librosa.feature.chroma_stft(y=audio, sr=sr).T, axis=0)
-        speech_frames = np.sum(librosa.effects.split(audio, top_db=20))
-        total_frames = len(audio)
-        rate_of_speech = speech_frames / total_frames
-        features = np.hstack((mfccs_mean, pitch, volume, timbre, spectral_centroid, spectral_bandwidth, spectral_contrast, chroma_stft, rate_of_speech))
-        return features
-    
-    def get_feature(self, wave_form:torch.Tensor, sr) -> Tuple[torch.Tensor]:
-        frames = wave_form.unfold(0, 400, 200)
-        zcr = frames.sign().diff(dim=1).ne(0).sum(dim=1).float() # 199
-        energy = frames.pow(2).sum(dim=1) # 199
-        max_val = frames.abs().max(dim=1).values # 199
-        fft = torch.fft.rfft(frames, 20).real # 199,11
-        
-        mfcc = self.mfcc_transform(wave_form) # 13, 201
-        return zcr, energy, mfcc, max_val, fft
 
     def __len__(self):
         return len(self.data_path)

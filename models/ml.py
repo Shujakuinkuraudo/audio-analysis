@@ -27,9 +27,9 @@ class Train_process:
             train_datas, train_targets = train
             test_datas, test_targets = test
             from sklearn.preprocessing import StandardScaler
-            train_scaler = StandardScaler()
-            train_datas = train_scaler.fit_transform(train_datas)
-            test_datas = train_scaler.transform(test_datas)
+            # train_scaler = StandardScaler()
+            # train_datas = train_scaler.fit_transform(train_datas)
+            # test_datas = train_scaler.transform(test_datas)
             clf.fit(train_datas, train_targets)
             now_acc = accuracy_score(clf.predict(test_datas), test_targets)
             acc += now_acc
