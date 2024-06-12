@@ -155,7 +155,6 @@ if __name__ == "__main__":
                     
                     # output = model.forward(mfcc_total=mfcc_total, mfcc_partial=mfcc_partial)
                     output = model.forward(mfcc_total=mfcc_total, mfcc_partial=None)
-                    print(y.shape, output.shape)
                     loss = model.loss_function(output, y)
                     loss.backward()
                     optimizer.step()
