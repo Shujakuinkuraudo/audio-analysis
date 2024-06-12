@@ -54,6 +54,9 @@ class emodb_dataset:
                         torch.zeros(1, self.sr * self.time-(wave_form.shape[1]//2 + (wave_form.shape[1]%2))), wave_form
                         )
                     , dim=1)
+            if wave_form.shape[1] > self.sr * self.time:
+                pad_len = wave_form.shape[1] - self.sr * self.time
+                wave_form = wave_form[:,pad_len//2:pad_len//2 + self.sr * self.time]
 
             wave_form = wave_form[0]
                 
