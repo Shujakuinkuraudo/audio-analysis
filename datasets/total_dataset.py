@@ -122,7 +122,7 @@ if __name__ == "__main__":
     # x_y = list(zip(x_source, y_source))
     # a,b = train_test_split(x_y, test_size=0.2, random_state=42)
     from sklearn.model_selection import train_test_split, KFold
-    run = wandb.init(project='audio analysis', name=f"kfold - all - CNN", reinit=True)
+    run = wandb.init(project='audio analysis', name=f"kfold - all - ARCNN", reinit=True)
 
     for dataset_name in ["emodb","savee"]:
         data = split_dataset(emodb.dataset_people_dict, choose=dataset_name)
@@ -147,14 +147,14 @@ if __name__ == "__main__":
                 for (zcr, energy, mfcc_total, max_val, fft, mfcc_partial), y in (tqdm_train := tqdm.tqdm(train_loader, total=len(train_loader), leave=False)):
                     optimizer.zero_grad()
                     mfcc_total = mfcc_total.to(device)
-                    # mfcc_partial = mfcc_partial.to(device)
+                    mfcc_partial = mfcc_partial.to(device)
                     y = y.to(device)
                     # smooth_label
                     y = torch.nn.functional.one_hot(y, num_classes=7).float()
                     y = y * 0.9 + 0.1 / 7
                     
                     # output = model.forward(mfcc_total=mfcc_total, mfcc_partial=mfcc_partial)
-                    output = model.forward(mfcc_total=mfcc_total, mfcc_partial=None)
+                    output = model.forward(mfcc_total=mfcc_total, mfcc_partial=mfcc_partial)
                     loss = model.loss_function(output, y)
                     loss.backward()
                     optimizer.step()
@@ -166,10 +166,10 @@ if __name__ == "__main__":
                 acc = []
                 for (zcr, energy, mfcc_total, max_val, fft, mfcc_partial), y in (tqdm_test := tqdm.tqdm(test_loader, total=len(test_loader), leave=False)):
                     mfcc_total = mfcc_total.to(device)
-                    # mfcc_partial = mfcc_partial.to(device)
+                    mfcc_partial = mfcc_partial.to(device)
                     y = y.to(device)
 
-                    output = model.forward(mfcc_total=mfcc_total, mfcc_partial=None)
+                    output = model.forward(mfcc_total=mfcc_total, mfcc_partial=mfcc_partial)
                     pred = output.argmax(dim=-1)
                     # y = y.argmax(dim=-1)
                     acc.append((pred == y).sum().item() / len(y))

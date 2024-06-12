@@ -33,6 +33,34 @@ class ResidualBlock(nn.Module):
         out = self.relu(out)
         return out
 
+class ARCNN_RNNlayer(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.MFCC_PARTIAL2VECTOR = nn.Sequential(
+            nn.LazyConv2d(64, (5,5), padding=2),
+            nn.ReLU(),
+            nn.LazyBatchNorm2d(),
+            ResidualBlock(64, 64),
+            ResidualBlock(64, 64),
+            nn.AdaptiveAvgPool2d((8, 8)),
+        )
+        self.VECTOR2REPRESENTATION = nn.Sequential(
+            nn.LazyLinear(128)
+        )
+    def forward(self, mfcc_partial:torch.Tensor):
+        batch, frames, time, mfcc_dim = mfcc_partial.size()
+        x = self.MFCC_PARTIAL2VECTOR(mfcc_partial.view(batch*frames, 1, time, mfcc_dim))
+        return self.VECTOR2REPRESENTATION(x.view(batch, frames, -1))
+    
+    @property
+    def input_size(self):
+        return (30, 64, 216, 39) # batch, mfcc_frames, mfcc_length, mfcc_dim
+    
+    @property
+    def output_size(self):
+        return (30, 128) # batch, representation_dim
+        
+
 
 from .TIMNET import TIMNET, WeightLayer
 class CNN(nn.Module):
@@ -48,16 +76,6 @@ class CNN(nn.Module):
             nn.Flatten(),
             nn.LazyLinear(128)
         )
-        # self.MFCC_PARTIAL2VECTOR = nn.Sequential(
-        #     nn.LazyConv2d(64, (5,5), padding=2),
-        #     nn.ReLU(),
-        #     nn.LazyBatchNorm2d(),
-        #     ResidualBlock(64, 64),
-        #     ResidualBlock(64, 64),
-        #     nn.AdaptiveAvgPool2d((8, 8)),
-        #     nn.Flatten(start_dim=-3),
-        #     nn.LazyLinear(128)
-        # )
         # self.RNN = nn.LSTM(128, 64, 2, batch_first=True, bidirectional=True)
         # self.Attention = nn.MultiheadAttention(128, 8, batch_first=True)
 
@@ -67,6 +85,8 @@ class CNN(nn.Module):
         # )
         # self.TIMNET = TIMNET(nb_filters=39, kernel_size=2, nb_stacks=1, dilations=None, activation="relu", dropout_rate=0.1, return_sequences=True)
         # self.WEIGHTLAYER = WeightLayer()
+        self.arcnn_layer = ARCNN_RNNlayer()
+        self.attention_layer = nn.MultiheadAttention(128, 8, batch_first=True)
         self.classifier = nn.Sequential(
             nn.ReLU(),
             nn.LazyLinear(num_classes),
@@ -77,22 +97,16 @@ class CNN(nn.Module):
     
     def forward(self, mfcc_total, mfcc_partial=None):
         x = self.MFCC_TOTAL2VECTOR(mfcc_total.unsqueeze(1)) # b, seq_len, feature
-        # mfcc_partial b,seq_len,channel,width,height
-        # b,seq_len,channel,widht,height = mfcc_partial.size()
-        # mfcc_partial = mfcc_partial.view(b*seq_len, channel, widht, height)
-        # x_partial = self.MFCC_PARTIAL2VECTOR(mfcc_partial)
-        # x_partial = x_partial.view(b, seq_len, -1)
-        # x_partial, _ = self.RNN(x_partial)
-        # x, _ = self.Attention(x, x_partial, x_partial)
-        # x = x.squeeze(1)
-        # x = self.TIMNET(mfcc_total)
-        # x = self.WEIGHTLAYER(x)
+        x_arcnn = self.arcnn_layer(mfcc_partial)
+        x, _ = self.attention_layer(x.unsqueeze(1), x_arcnn, x_arcnn)
 
-        return self.classifier(x) 
+        return self.classifier(x.squeeze(1)) 
+    
+    def output_size(self):
+        return (30, 7) # batch, label
 
         
 if __name__ == "__main__":
     ae = CNN()
-    x = torch.randn(30, 13, 201)
-    y = ae(x)
+    y = ae(torch.rand((10, 216, 39)), torch.rand((10, 64, 216, 39)))
     print(y.shape)

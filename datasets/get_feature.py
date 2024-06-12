@@ -19,11 +19,16 @@ def get_feature(wave_form:torch.Tensor, sr, mfcc_transform=None, embed_len=39) -
     mfcc_total = torch.tensor(librosa.feature.mfcc(y=wave_form.numpy(), sr=sr, n_mfcc=embed_len)).T
     # mfcc_total = torch.concat([mfcc_total, torchaudio.transforms.AmplitudeToDB(top_db=80)(mfcc_total)], dim=0)
 
-    frames = wave_form.unfold(0, 16000, 1000) 
-    hamming = torch.hamming_window(16000)
+    frames = wave_form.unfold(0, 22050, 4000) 
+    hamming = torch.hamming_window(22050)
     frames = frames * hamming
-    # mfcc_partial = mfcc_transform(frames).unsqueeze(1) # 59, 13, 9
-    mfcc_partial = torch.tensor(0)
+    mfcc_partial = torch.tensor(librosa.feature.mfcc(y=frames.numpy(), sr=sr, n_mfcc=embed_len)).permute(0, 2, 1)
     # mfcc_partial = torch.concat([mfcc_partial, torchaudio.transforms.AmplitudeToDB(top_db=80)(mfcc_partial)], dim=1)
     
     return zcr, energy, mfcc_total, max_val, fft, mfcc_partial
+if __name__ == "__main__":
+    wave_form = torch.randn(16000*10)
+    sr = 16000
+    zcr, energy, mfcc_total, max_val, fft, mfcc_partial = get_feature(wave_form, sr)
+    print(zcr.shape, mfcc_total.shape, mfcc_partial.shape)
+    
