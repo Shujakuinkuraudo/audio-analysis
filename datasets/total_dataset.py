@@ -137,8 +137,9 @@ if __name__ == "__main__":
             test_loader = DataLoader(b, batch_size=16, shuffle=False)
             from models.CNN import CNN
             model = CNN(num_classes=7).to(device)
-            optimizer = torch.optim.Adam(model.parameters(), betas=(0.93, 0.98))
-            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.9)
+            print(model)
+            optimizer = torch.optim.Adam(model.parameters(), lr = 1e-2 ,betas=(0.93, 0.98))
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,  step_size=10, gamma=0.9)
             
             for _ in (tqdm_epoch := tqdm.tqdm(range(1000))):
                 model.train()
@@ -154,6 +155,7 @@ if __name__ == "__main__":
                     
                     # output = model.forward(mfcc_total=mfcc_total, mfcc_partial=mfcc_partial)
                     output = model.forward(mfcc_total=mfcc_total, mfcc_partial=None)
+                    print(y.shape, output.shape)
                     loss = model.loss_function(output, y)
                     loss.backward()
                     optimizer.step()

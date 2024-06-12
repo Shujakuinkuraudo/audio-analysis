@@ -76,7 +76,7 @@ class CNN(nn.Module):
         return nn.functional.cross_entropy(y, target)
     
     def forward(self, mfcc_total, mfcc_partial=None):
-        x = self.MFCC_TOTAL2VECTOR(mfcc_total.unsqueeze(0)) # b, seq_len, feature
+        x = self.MFCC_TOTAL2VECTOR(mfcc_total.unsqueeze(1)) # b, seq_len, feature
         # mfcc_partial b,seq_len,channel,width,height
         # b,seq_len,channel,widht,height = mfcc_partial.size()
         # mfcc_partial = mfcc_partial.view(b*seq_len, channel, widht, height)
