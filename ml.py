@@ -24,20 +24,27 @@ feature_cache = {}
 emodb_fold, emodb_labels = emodb_fold_ml(fold = 5, feature_cache= feature_cache)
 savee_fold, savee_labels = savee_fold_ml(fold = 4, feature_cache= feature_cache)
 
+
 for clf in clfs:
-    run = wandb.init(project='audio analysis', name=f"kfold - different - {repr(clf)}",tags=["手工特征集","unstandardscale"],  reinit=True)
+    for standardscale in [True, False]:
+        tags = ["eGeMAPSv02"]
+        if standardscale:
+            tags.append("standardscale")
+        else:
+            tags.append("unstandardscale")
+        run = wandb.init(project='audio analysis', name=f"kfold - different - {repr(clf)}",tags=tags,  reinit=True)
 
-    try:
-        tp = Train_process()
-        acc,accs = tp.test_fold(emodb_fold, clf, emodb_labels)
-        run.log({"emodb - 5 - acc": acc})
-        for i in range(5):
-            run.log({f"emodb_{i}_acc": accs[i]})
+        try:
+            tp = Train_process()
+            acc,accs = tp.test_fold(emodb_fold, clf, emodb_labels,stand=standardscale)
+            run.log({"emodb - 5 - acc": acc})
+            for i in range(5):
+                run.log({f"emodb_{i}_acc": accs[i]})
 
-        acc,accs = tp.test_fold(savee_fold, clf, savee_labels)
-        run.log({"savee - 4 - acc": acc})
-        for i in range(4):
-            run.log({f"savee_{i}_acc": accs[i]})
+            acc,accs = tp.test_fold(savee_fold, clf, savee_labels, stand= standardscale)
+            run.log({"savee - 4 - acc": acc})
+            for i in range(4):
+                run.log({f"savee_{i}_acc": accs[i]})
 
-    finally:
-        run.finish()
+        finally:
+            run.finish()

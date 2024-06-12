@@ -2,7 +2,7 @@ def extract_features(file_path):
     import opensmile
     import numpy as np
     smile = opensmile.Smile(
-        feature_set=opensmile.FeatureSet.GeMAPSv01b,
+        feature_set=opensmile.FeatureSet.eGeMAPSv02,
         feature_level=opensmile.FeatureLevel.Functionals,
     )
     features = np.array(smile.process_file(file_path)).reshape(-1)
